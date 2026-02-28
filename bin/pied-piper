@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+set -e
+
+IMAGE="${PIED_PIPER_IMAGE:-ghcr.io/your-org/pied-piper:latest}"
+
+# fix command needs write access to modify files
+if [ "$1" = "fix" ]; then
+  MOUNT_FLAG="rw"
+  USER_FLAG="--user $(id -u):$(id -g)"
+else
+  MOUNT_FLAG="ro"
+  USER_FLAG=""
+fi
+
+# Auto-detect and mount project dependencies (improves type-check accuracy)
+EXTRA_MOUNTS=""
+[ -d .venv ] && EXTRA_MOUNTS="$EXTRA_MOUNTS -v $(pwd)/.venv:/work/.venv:ro"
+[ -d node_modules ] && EXTRA_MOUNTS="$EXTRA_MOUNTS -v $(pwd)/node_modules:/work/node_modules:ro"
+
+exec docker run --rm \
+  --network none \
+  --read-only \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --tmpfs /tmp:rw,exec,size=200m \
+  $USER_FLAG \
+  -v "$(pwd):/work:${MOUNT_FLAG}" \
+  $EXTRA_MOUNTS \
+  -w /work \
+  "$IMAGE" "$@"

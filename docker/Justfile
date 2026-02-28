@@ -1,0 +1,95 @@
+# Pied Piper Container Justfile
+# Invoked by docker/entrypoint.sh — never seen by the user or agent.
+
+config := "/etc/pied-piper"
+run_check := "/opt/pied-piper/scripts/run-check.sh"
+# Directories to exclude from scanning (mounted from host)
+exclude_dirs := ".venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git"
+
+# -- Python checks --
+
+py-format:
+    @{{run_check}} "py:format" ruff format --check --cache-dir /tmp/ruff-cache --config {{config}}/pyproject.toml .
+
+py-lint:
+    @{{run_check}} "py:lint" ruff check --cache-dir /tmp/ruff-cache --config {{config}}/pyproject.toml .
+
+py-type:
+    @{{run_check}} "py:typecheck" ty check --exclude ".venv/" --exclude ".devenv/" --exclude "node_modules/" .
+
+py-arch:
+    @{{run_check}} "py:architecture" lint-imports --config {{config}}/pyproject.toml --no-cache
+
+py-deadcode:
+    @{{run_check}} "py:deadcode" vulture . --min-confidence 80 --exclude {{exclude_dirs}}
+
+py-security:
+    @{{run_check}} "py:security" bandit -r . -q -ll --exclude ./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next
+
+py-complexity:
+    @{{run_check}} "py:complexity" xenon --max-absolute B --max-modules A --max-average A --exclude "{{exclude_dirs}}" .
+
+# -- TypeScript checks --
+
+ts-format:
+    #!/usr/bin/env bash
+    if ! find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -print 2>/dev/null | head -1 | grep -q .; then
+        echo "SKIP ts:format (no JS/TS source files found)"
+        exit 0
+    fi
+    @{{run_check}} "ts:format" biome format --config-path {{config}} .
+
+ts-lint:
+    #!/usr/bin/env bash
+    if ! find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -print 2>/dev/null | head -1 | grep -q .; then
+        echo "SKIP ts:lint (no JS/TS source files found)"
+        exit 0
+    fi
+    @{{run_check}} "ts:lint" biome lint --config-path {{config}} .
+
+ts-type:
+    #!/usr/bin/env bash
+    if ! find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o -name '*.ts' -print 2>/dev/null | head -1 | grep -q .; then
+        echo "SKIP ts:typecheck (no .ts source files found)"
+        exit 0
+    fi
+    # Generate temp tsconfig with absolute paths for /work mount
+    cat > /tmp/tsconfig.json <<'TSCONF'
+    {
+      "compilerOptions": {
+        "target": "ES2022", "module": "Node16", "moduleResolution": "Node16",
+        "strict": true, "noEmit": true, "skipLibCheck": true, "esModuleInterop": true
+      },
+      "include": ["/work/**/*.ts", "/work/**/*.tsx"],
+      "exclude": ["/work/node_modules", "/work/dist", "/work/build", "/work/.next"]
+    }
+    TSCONF
+    @{{run_check}} "ts:typecheck" tsc -p /tmp/tsconfig.json
+
+# -- Cross-language checks --
+
+x-semgrep:
+    @{{run_check}} "x:security" semgrep scan --config {{config}}/.semgrep.yml --quiet --error --metrics=off --exclude .venv --exclude .devenv --exclude node_modules --exclude dist --exclude build .
+
+x-astgrep:
+    @{{run_check}} "x:lint" ast-grep scan --config {{config}}/sgconfig.yml
+
+# -- Composite recipes --
+
+check-fast: py-format py-lint py-type ts-format ts-lint ts-type
+
+check-full: check-fast py-arch py-deadcode py-security py-complexity x-semgrep x-astgrep
+
+check-pr: check-full
+
+# -- Fix recipes --
+
+fix:
+    #!/usr/bin/env bash
+    ruff format --cache-dir /tmp/ruff-cache --config {{config}}/pyproject.toml .
+    ruff check --cache-dir /tmp/ruff-cache --fix --config {{config}}/pyproject.toml . || true
+    if find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -print 2>/dev/null | head -1 | grep -q .; then
+        biome format --write --config-path {{config}} .
+        biome lint --write --config-path {{config}} . || true
+    fi
+    echo "OK fix"

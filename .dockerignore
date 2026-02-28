@@ -1,0 +1,14 @@
+# Exclude from Docker build context
+.devenv/
+.direnv/
+.venv/
+node_modules/
+.pycache/
+__pycache__/
+.git/
+.env
+.import_linter_cache/
+.semgrep/
+.mutmut-cache/
+docs/
+.claude/
