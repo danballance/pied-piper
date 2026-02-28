@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+
 from piper_py.detect import has_config_section, has_files
 from piper_py.runner import Check
 
@@ -19,8 +21,8 @@ def _no_importlinter() -> bool:
     return not has_config_section("pyproject.toml", "[tool.importlinter]")
 
 
-def _no_semgrep_config() -> bool:
-    return not has_config_section(".semgrep.yml", "rules:")
+def _no_semgrep() -> bool:
+    return shutil.which("semgrep") is None or not has_config_section(".semgrep.yml", "rules:")
 
 
 FAST_CHECKS: list[Check] = [
@@ -88,7 +90,7 @@ FULL_ONLY_CHECKS: list[Check] = [
             "--exclude", "conftest.py",
             ".",
         ],
-        skip_if=_no_semgrep_config,
+        skip_if=_no_semgrep,
     ),
 ]
 

@@ -206,7 +206,9 @@ forbidden_modules = ["myproject.db"]
 
 **What it does:** Structural code analysis tool that matches code patterns. Write rules that look like the code they match. Works across Python, TypeScript, JavaScript, and many other languages.
 
-**Check:** `py:semgrep` (full, in Python tool) — skips if no `.semgrep.yml`
+**Check:** `py:semgrep` (full, in Python tool) — skips if `semgrep` is not on PATH or no `.semgrep.yml`
+
+**Install separately:** `pip install semgrep` or `uv tool install semgrep` (not bundled due to dependency conflicts)
 
 **Config:** `.semgrep.yml` — add custom rules for project-specific patterns.
 

@@ -74,7 +74,7 @@ Run via: `uvx pied-piper <command>`
 | `py:deadcode` | vulture | full | No `.py` files |
 | `py:security` | bandit | full | No `.py` files |
 | `py:complexity` | complexipy | full | No `.py` files |
-| `py:semgrep` | semgrep | full | No `.semgrep.yml` with rules |
+| `py:semgrep` | semgrep | full | No `semgrep` on PATH or no `.semgrep.yml` with rules |
 
 `fix` runs: `ruff format .` then `ruff check --fix .`
 
