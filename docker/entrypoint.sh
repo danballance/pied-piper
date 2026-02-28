@@ -17,8 +17,11 @@ JUSTFILE="/opt/pied-piper/Justfile"
 
 case "${1:-}" in
   check-fast|check-full|check-pr|fix)
-    output=$(just --justfile "$JUSTFILE" --working-directory /work "$1" 2>&1) && rc=0 || rc=$?
-    echo "$output" | grep -v "^error: Recipe"
+    rc=0
+    just --justfile "$JUSTFILE" --working-directory /work "$1" 2>/tmp/just-stderr.log || rc=$?
+    if [ "$rc" -ne 0 ] && [ -s /tmp/just-stderr.log ]; then
+        cat /tmp/just-stderr.log
+    fi
     exit "$rc"
     ;;
   version|--version|-v)
