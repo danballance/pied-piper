@@ -73,7 +73,7 @@ Run via: `uvx pied-piper <command>`
 | `py:arch` | import-linter | full | No `[tool.importlinter]` in pyproject.toml |
 | `py:deadcode` | vulture | full | No `.py` files |
 | `py:security` | bandit | full | No `.py` files |
-| `py:complexity` | xenon | full | No `.py` files |
+| `py:complexity` | complexipy | full | No `.py` files |
 | `py:semgrep` | semgrep | full | No `.semgrep.yml` with rules |
 
 `fix` runs: `ruff format .` then `ruff check --fix .`

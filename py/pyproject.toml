@@ -9,7 +9,7 @@ dependencies = [
     "import-linter",
     "vulture",
     "bandit",
-    "xenon",
+    "complexipy>=5.0",
     "semgrep>=1.0.0",
 ]
 
@@ -23,6 +23,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/piper_py"]
+
+[tool.uv]
+# semgrep pins tomli~=2.0.1 but complexipy needs tomli>=2.2.1.
+# On Python 3.11+ tomllib is in the stdlib so tomli is a dead dep.
+# Override to let the resolver pick a compatible version.
+override-dependencies = ["tomli>=2.2.1"]
 
 [dependency-groups]
 dev = ["pytest"]

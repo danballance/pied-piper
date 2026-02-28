@@ -118,24 +118,23 @@ forbidden_modules = ["myproject.db"]
 
 ---
 
-### xenon
+### complexipy
 
-**What it does:** Enforces code complexity thresholds. Wraps radon and exits non-zero when thresholds are exceeded.
+**What it does:** Enforces cognitive complexity thresholds. Measures how hard code is for a human to understand — penalizes nesting depth and flow-breaking constructs (break, continue, early return, recursion). Written in Rust for speed.
 
 **Check:** `py:complexity` (full)
 
-**Config:** `--max-absolute B --max-modules A --max-average A`
-- `--max-absolute B` — no single function can exceed "B" complexity (11-15)
-- `--max-modules A` — no module can exceed "A" complexity (1-5)
-- `--max-average A` — average complexity across all modules must be "A"
-
-Grades: A (1-5), B (6-10 or 11-15 depending on metric), C (16-25+)
+**Config:** `--max-complexity-allowed 15`
+- Functions exceeding a cognitive complexity score of 15 fail the check
+- Score of 15 is the SonarSource standard threshold
 
 **Tuning:**
-- If thresholds are too strict, loosen to `--max-absolute C`
-- If too lenient, tighten to `--max-absolute A`
+- If thresholds are too strict, increase to `--max-complexity-allowed 20`
+- If too lenient, tighten to `--max-complexity-allowed 10`
+- Suppress per-line: `# noqa: complexipy`
+- Supports `[tool.complexipy]` in `pyproject.toml` for project-level config
 
-**Docs:** https://github.com/rubik/xenon
+**Docs:** https://github.com/rohaquinlop/complexipy
 
 ---
 

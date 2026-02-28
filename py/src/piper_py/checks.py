@@ -5,6 +5,10 @@ from piper_py.runner import Check
 
 EXCLUDE_DIRS_CSV = ".venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git,tests,test,__tests__"
 EXCLUDE_DIRS_DOTSLASH = "./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next,./tests,./test"
+EXCLUDE_DIRS = [".venv", ".devenv", ".direnv", "node_modules", "dist", "build", ".next", "__pycache__", ".git", "tests", "test", "__tests__"]
+_COMPLEXITY_EXCLUDE: list[str] = []
+for _d in EXCLUDE_DIRS:
+    _COMPLEXITY_EXCLUDE.extend(["--exclude", _d])
 
 
 def _no_py() -> bool:
@@ -66,7 +70,7 @@ FULL_ONLY_CHECKS: list[Check] = [
     ),
     Check(
         name="py:complexity",
-        command=["xenon", "--max-absolute", "B", "--max-modules", "A", "--max-average", "A", "--exclude", EXCLUDE_DIRS_CSV, "."],
+        command=["complexipy", ".", "--max-complexity-allowed", "15", "--quiet", *_COMPLEXITY_EXCLUDE],
         skip_if=_no_py,
     ),
     Check(
