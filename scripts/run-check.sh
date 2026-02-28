@@ -13,6 +13,6 @@ if [ "$RC" -eq 0 ]; then
     echo "OK $TOOL_NAME"
 else
     echo "FAIL $TOOL_NAME"
-    echo "$OUTPUT" | head -20
+    echo "$OUTPUT"
     exit 2
 fi

@@ -17,7 +17,9 @@ JUSTFILE="/opt/pied-piper/Justfile"
 
 case "${1:-}" in
   check-fast|check-full|check-pr|fix)
-    exec just --justfile "$JUSTFILE" --working-directory /work "$1"
+    output=$(just --justfile "$JUSTFILE" --working-directory /work "$1" 2>&1) && rc=0 || rc=$?
+    echo "$output" | grep -v "^error: Recipe"
+    exit "$rc"
     ;;
   version|--version|-v)
     echo "pied-piper $VERSION"
