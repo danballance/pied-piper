@@ -1,8 +1,8 @@
 # Tool Reference
 
-Detailed reference for each guardrail tool. See [README.md](README.md) for recipes and usage.
+Detailed reference for each guardrail tool. See [README.md](README.md) for commands and usage.
 
-> **Docker users:** The Docker image (`pied-piper check-fast`, etc.) packages all these tools internally. You do not need to install or configure them individually. This reference is for the native Justfile workflow and for understanding what runs under the hood.
+> These tools are packaged as dependencies of the `pied-piper` CLI tools. You do not need to install them individually — they are available automatically when you run `uvx pied-piper` or `npx pied-piper`.
 
 ---
 
@@ -12,7 +12,7 @@ Detailed reference for each guardrail tool. See [README.md](README.md) for recip
 
 **What it does:** Extremely fast Python linter and formatter, written in Rust. Replaces Black, Flake8, isort, and many Flake8 plugins with a single tool.
 
-**Version:** 0.15.4
+**Checks:** `py:format` (fast), `py:lint` (fast)
 
 **Config:** `pyproject.toml`
 
@@ -28,17 +28,11 @@ select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ",
           "TID", "TCH", "ARG", "ERA", "PL", "PERF", "RUF"]
 ```
 
-**Recipes:**
-- `just py-format` — check formatting (exit 2 if unformatted)
-- `just py-format-fix` — fix formatting in place
-- `just py-lint` — check lint rules (exit 2 on violations)
-- `just py-lint-fix` — auto-fix lint issues
-
 **Tuning:**
 - Disable a rule project-wide: add to `[tool.ruff.lint.ignore]`
 - Disable per-file: use `[tool.ruff.lint.per-file-ignores]`
 - Disable per-line: `# noqa: RULE`
-- The current rule selection is intentionally broad for experimentation. Narrow it by removing rule prefixes from the `select` list.
+- The current rule selection is intentionally broad. Narrow it by removing rule prefixes from the `select` list.
 
 **Docs:** https://docs.astral.sh/ruff/
 
@@ -48,15 +42,13 @@ select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ",
 
 **What it does:** Extremely fast Rust-based Python type checker by Astral (same team as ruff). 10-60x faster than mypy/Pyright without caching. Currently in beta.
 
-**Version:** 0.0.19
+**Check:** `py:type` (fast)
 
 **Config:** Can be configured in `pyproject.toml` under `[tool.ty]` (no custom config added yet — using defaults).
 
-**Recipe:** `just py-type`
-
 **Tuning:**
 - ty is in beta — expect occasional false positives
-- If ty proves too noisy, consider switching to mypy or pyright (change the recipe command)
+- If ty proves too noisy, consider switching to mypy or pyright
 
 **Docs:** https://github.com/astral-sh/ty
 
@@ -66,32 +58,25 @@ select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ",
 
 **What it does:** Enforces architectural boundaries by defining contracts that restrict which modules can import from which. Prevents the codebase from becoming spaghetti over time.
 
-**Version:** 2.6
+**Check:** `py:arch` (full) — skips if no `[tool.importlinter]` config in `pyproject.toml`
 
-**Config:** `pyproject.toml` — not yet configured. Add a `[tool.importlinter]` section when your project has enough modules to warrant architectural boundaries. Example:
+**Config:** `pyproject.toml` — add a `[tool.importlinter]` section when your project has enough modules to warrant architectural boundaries. Example:
 
 ```toml
 [tool.importlinter]
-root_packages = ["pied_piper"]
+root_packages = ["myproject"]
 
 [[tool.importlinter.contracts]]
 name = "No direct DB access from API layer"
 type = "forbidden"
-source_modules = ["pied_piper.api"]
-forbidden_modules = ["pied_piper.db"]
+source_modules = ["myproject.api"]
+forbidden_modules = ["myproject.db"]
 ```
 
-**Recipe:** `just py-arch` (skips gracefully if no `[tool.importlinter]` config in `pyproject.toml`)
-
 **Contract types:**
-- `forbidden` — prevent specific imports (e.g., no ORM in API layer)
-- `layers` — enforce layered architecture (views → services → models, never reversed)
+- `forbidden` — prevent specific imports
+- `layers` — enforce layered architecture (never reversed)
 - `independence` — ensure modules don't depend on each other
-
-**Tuning:**
-- No contracts are currently configured — the recipe will skip gracefully
-- As the project grows, define contracts based on your module structure
-- Example: prevent `pied_piper.api` from importing `pied_piper.db` directly
 
 **Docs:** https://github.com/seddomon/import-linter
 
@@ -101,16 +86,13 @@ forbidden_modules = ["pied_piper.db"]
 
 **What it does:** Finds unused Python code — unused functions, classes, variables, imports, and unreachable code via AST analysis. Each finding has a confidence score.
 
-**Version:** 2.14
+**Check:** `py:deadcode` (full)
 
-**Config:** CLI flags in Justfile: `--min-confidence 80`
-
-**Recipe:** `just py-deadcode`
+**Config:** `--min-confidence 80`
 
 **Tuning:**
 - `--min-confidence 80` filters out low-confidence findings (reduce for stricter, increase for quieter)
 - Create `vulture_whitelist.py` for known false positives (e.g., Flask route handlers, pytest fixtures)
-- Add the whitelist: `uv run vulture pied_piper/ vulture_whitelist.py --min-confidence 80`
 
 **Docs:** https://github.com/jendrikseipp/vulture
 
@@ -120,14 +102,12 @@ forbidden_modules = ["pied_piper.db"]
 
 **What it does:** Python security linter (SAST). Checks for common security issues: hardcoded passwords, use of `eval()`, SQL injection patterns, insecure hash functions, weak cryptography, etc. Has 68 built-in checks.
 
-**Version:** 1.9.4
+**Check:** `py:security` (full)
 
-**Config:** CLI flags in Justfile: `-r . -q -ll`
+**Config:** `-r . -q -ll`
 - `-r` — recursive scan
 - `-q` — quiet output (errors only)
 - `-ll` — medium and high severity only (skip low)
-
-**Recipe:** `just py-security`
 
 **Tuning:**
 - `-ll` skips low-severity findings. Change to `-l` for all severities or `-lll` for high only.
@@ -140,18 +120,16 @@ forbidden_modules = ["pied_piper.db"]
 
 ### xenon
 
-**What it does:** Enforces code complexity thresholds. Wraps radon (which computes cyclomatic complexity, Halstead metrics, and maintainability index) and exits non-zero when thresholds are exceeded.
+**What it does:** Enforces code complexity thresholds. Wraps radon and exits non-zero when thresholds are exceeded.
 
-**Version:** 0.9.3
+**Check:** `py:complexity` (full)
 
-**Config:** CLI flags in Justfile: `--max-absolute B --max-modules A --max-average A`
+**Config:** `--max-absolute B --max-modules A --max-average A`
 - `--max-absolute B` — no single function can exceed "B" complexity (11-15)
 - `--max-modules A` — no module can exceed "A" complexity (1-5)
 - `--max-average A` — average complexity across all modules must be "A"
 
 Grades: A (1-5), B (6-10 or 11-15 depending on metric), C (16-25+)
-
-**Recipe:** `just py-complexity`
 
 **Tuning:**
 - If thresholds are too strict, loosen to `--max-absolute C`
@@ -167,33 +145,9 @@ Grades: A (1-5), B (6-10 or 11-15 depending on metric), C (16-25+)
 
 **What it does:** Fast TypeScript/JavaScript linter and formatter, written in Rust. Replacement for ESLint + Prettier with significantly better performance.
 
-**Version:** 2.4.4
+**Checks:** `ts:format` (fast), `ts:lint` (fast)
 
-**Config:** `biome.json`
-
-```json
-{
-  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
-  "files": {
-    "includes": [
-      "src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx",
-      "!**/*.test.*", "!**/*.spec.*",
-      "!**/tests/**", "!**/test/**", "!**/__tests__/**",
-      "biome.json", "tsconfig.json", "package.json"
-    ]
-  },
-  "linter": { "enabled": true, "rules": { "recommended": true } },
-  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 }
-}
-```
-
-The `files.includes` whitelist prevents biome from scanning non-project files (like `.devenv/` HTML files). Negation patterns exclude test files from all checks.
-
-**Recipes:**
-- `just ts-format` — check formatting
-- `just ts-format-fix` — fix formatting in place
-- `just ts-lint` — check lint rules
-- `just ts-lint-fix` — auto-fix lint issues
+**Config:** `biome.json` — uses project config if present, biome defaults otherwise.
 
 **Docs:** https://biomejs.dev/
 
@@ -203,31 +157,9 @@ The `files.includes` whitelist prevents biome from scanning non-project files (l
 
 **What it does:** TypeScript's built-in type checker. Runs with `--noEmit` to check types without producing output files.
 
-**Version:** 5.9.3
+**Check:** `ts:type` (fast)
 
-**Config:** `tsconfig.json`
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "Node16",
-    "strict": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true
-  },
-  "include": ["src/**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "**/*.test.ts", "**/*.spec.ts",
-    "**/__tests__/**", "**/test/**", "**/tests/**"
-  ]
-}
-```
-
-**Recipe:** `just ts-type` (skips gracefully if no `.ts` files in `src/`)
+**Config:** `tsconfig.json` — uses project config if present.
 
 **Docs:** https://www.typescriptlang.org/
 
@@ -235,13 +167,9 @@ The `files.includes` whitelist prevents biome from scanning non-project files (l
 
 ### dependency-cruiser
 
-**What it does:** Validates and visualizes JavaScript/TypeScript dependency graphs. Enforces rules like "no circular dependencies", "feature modules can't cross-import", "no test code in production imports".
+**What it does:** Validates and visualizes JavaScript/TypeScript dependency graphs. Enforces rules like "no circular dependencies", "feature modules can't cross-import".
 
-**Version:** 17.3.8
-
-**Config:** `.dependency-cruiser.js` (not yet created — recipe skips gracefully)
-
-**Recipe:** `just ts-arch` (skips if no config or no `src/` directory)
+**Check:** `ts:arch` (full) — skips if no `.dependency-cruiser.js` config or no `src/` directory
 
 **Setup:** Run `npx depcruise --init` to generate initial config.
 
@@ -251,13 +179,11 @@ The `files.includes` whitelist prevents biome from scanning non-project files (l
 
 ### knip
 
-**What it does:** Finds unused files, unused exports, unused and unlisted dependencies, and duplicate dependencies in TypeScript/JavaScript projects. Auto-detects 50+ frameworks via plugins.
+**What it does:** Finds unused files, unused exports, unused and unlisted dependencies, and duplicate dependencies in TypeScript/JavaScript projects.
 
-**Version:** 5.85.0
+**Check:** `ts:deadcode` (full) — skips if no `.ts` files in `src/`
 
-**Config:** Can use `knip.json` or `package.json` (no custom config yet — using defaults).
-
-**Recipe:** `just ts-deadcode` (skips if no `.ts` files in `src/`)
+**Config:** Can use `knip.json` or `package.json` (defaults are good).
 
 **Docs:** https://knip.dev/
 
@@ -267,14 +193,9 @@ The `files.includes` whitelist prevents biome from scanning non-project files (l
 
 **What it does:** Measures what percentage of your TypeScript code has explicit or inferred type coverage. Enforces a minimum threshold to prevent `any` from spreading.
 
-**Version:** 2.29.7
+**Check:** `ts:typecov` (full) — skips if no `.ts` files in `src/`
 
-**Config:** CLI flags in Justfile: `--at-least 80`
-
-**Recipe:** `just ts-typecov` (skips if no `.ts` files in `src/`)
-
-**Tuning:**
-- `--at-least 80` requires 80% type coverage. Increase as codebase matures.
+**Config:** `--at-least 80` requires 80% type coverage. Increase as codebase matures.
 
 **Docs:** https://github.com/nicolo-ribaudo/type-coverage
 
@@ -284,59 +205,13 @@ The `files.includes` whitelist prevents biome from scanning non-project files (l
 
 ### semgrep
 
-**What it does:** Structural code analysis tool that matches code patterns. Write rules that look like the code they match. Works across Python, TypeScript, JavaScript, and many other languages from a single YAML ruleset. Also has 20,000+ community rules for security scanning.
+**What it does:** Structural code analysis tool that matches code patterns. Write rules that look like the code they match. Works across Python, TypeScript, JavaScript, and many other languages.
 
-**Version:** 1.153.1
+**Check:** `py:semgrep` (full, in Python tool) — skips if no `.semgrep.yml`
 
-**Config:** `.semgrep.yml`
-
-```yaml
-rules:
-  - id: no-eval
-    patterns:
-      - pattern: eval(...)
-    message: "eval() is forbidden"
-    languages: [python]
-    severity: ERROR
-    paths:
-      exclude:
-        - tests/
-        - test/
-        - __tests__/
-        - "*_test.py"
-        - "test_*.py"
-        - conftest.py
-        - "*.test.ts"
-        - "*.test.js"
-        - "*.spec.ts"
-        - "*.spec.js"
-
-  - id: no-hardcoded-secrets
-    patterns:
-      - pattern-regex: '(password|secret|api_key|token)\s*=\s*...'
-    message: "Possible hardcoded secret"
-    languages: [python, typescript, javascript]
-    severity: WARNING
-    paths:
-      exclude:
-        - tests/
-        - test/
-        - __tests__/
-        - "*_test.py"
-        - "test_*.py"
-        - conftest.py
-        - "*.test.ts"
-        - "*.test.js"
-        - "*.spec.ts"
-        - "*.spec.js"
-```
-
-**Recipe:** `just x-semgrep`
-
-**CLI flags:** `--quiet --error` (quiet output, exit non-zero on findings)
+**Config:** `.semgrep.yml` — add custom rules for project-specific patterns.
 
 **Tuning:**
-- Add custom rules to `.semgrep.yml` for project-specific patterns
 - Suppress per-line: `# nosemgrep: rule-id`
 - Use community rulesets: `--config p/python` or `--config p/typescript`
 
@@ -346,14 +221,10 @@ rules:
 
 ### ast-grep
 
-**What it does:** Rust-based structural search/lint tool built on tree-sitter. Blazingly fast. Good for interactive codemods and one-off structural searches. Complements semgrep with superior performance and embeddability.
+**What it does:** Rust-based structural search/lint tool built on tree-sitter. Good for interactive codemods and structural searches.
 
-**Version:** 0.41.0
+**Check:** `ts:astgrep` (full, in TypeScript tool) — skips if no `sgconfig.yml`
 
-**Config:** `sgconfig.yml` (points to `rules/` directory for custom rules)
-
-**Recipe:** `just x-astgrep`
-
-**Usage:** Add YAML rule files to the `rules/` directory.
+**Config:** `sgconfig.yml` — points to a `rules/` directory for custom rules.
 
 **Docs:** https://ast-grep.github.io/

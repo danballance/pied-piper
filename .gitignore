@@ -24,3 +24,4 @@ node_modules/
 # Project outputs
 results/*
 !results/.gitkeep
+ts/dist/

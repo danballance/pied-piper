@@ -1,0 +1,30 @@
+{
+  "name": "pied-piper",
+  "version": "0.1.0",
+  "description": "TypeScript code guardrails for agentic coding workflows",
+  "type": "module",
+  "bin": {
+    "pied-piper": "./dist/cli.js",
+    "piper": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist/"
+  ],
+  "dependencies": {
+    "@ast-grep/cli": "^0.41.0",
+    "@biomejs/biome": "^2.4.4",
+    "dependency-cruiser": "^17.3.8",
+    "knip": "^5.85.0",
+    "type-coverage": "^2.29.7",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "vitest": "^3.0.0"
+  }
+}
