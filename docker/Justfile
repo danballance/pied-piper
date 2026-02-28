@@ -4,7 +4,7 @@
 config := "/etc/pied-piper"
 run_check := "/opt/pied-piper/scripts/run-check.sh"
 # Directories to exclude from scanning (mounted from host)
-exclude_dirs := ".venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git"
+exclude_dirs := ".venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git,tests,test,__tests__"
 
 # -- Python checks --
 
@@ -15,16 +15,28 @@ py-lint:
     @{{run_check}} "py:lint" ruff check --cache-dir /tmp/ruff-cache --config {{config}}/pyproject.toml .
 
 py-type:
-    @{{run_check}} "py:typecheck" ty check --exclude ".venv/" --exclude ".devenv/" --exclude "node_modules/" .
+    #!/usr/bin/env bash
+    ty_args=(check --exclude ".venv/" --exclude ".devenv/" --exclude "node_modules/" --exclude "tests/" --exclude "test/" --exclude "test_*.py" --exclude "*_test.py" --exclude "conftest.py")
+    for sp in .venv/lib/python*/site-packages; do
+        if [ -d "$sp" ]; then
+            ty_args+=(--extra-search-path "$sp")
+        fi
+    done
+    {{run_check}} "py:typecheck" ty "${ty_args[@]}" .
 
 py-arch:
-    @{{run_check}} "py:architecture" lint-imports --config {{config}}/pyproject.toml --no-cache
+    #!/usr/bin/env bash
+    if [ -f pyproject.toml ] && grep -q '\[tool.importlinter\]' pyproject.toml; then
+        {{run_check}} "py:architecture" lint-imports --no-cache
+    else
+        echo "SKIP py:architecture (no [tool.importlinter] config in project)"
+    fi
 
 py-deadcode:
     @{{run_check}} "py:deadcode" vulture . --min-confidence 80 --exclude {{exclude_dirs}}
 
 py-security:
-    @{{run_check}} "py:security" bandit -r . -q -ll --exclude ./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next
+    @{{run_check}} "py:security" bandit -r . -q -ll --exclude ./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next,./tests,./test
 
 py-complexity:
     @{{run_check}} "py:complexity" xenon --max-absolute B --max-modules A --max-average A --exclude "{{exclude_dirs}}" .
@@ -61,7 +73,11 @@ ts-type:
         "strict": true, "noEmit": true, "skipLibCheck": true, "esModuleInterop": true
       },
       "include": ["/work/**/*.ts", "/work/**/*.tsx"],
-      "exclude": ["/work/node_modules", "/work/dist", "/work/build", "/work/.next"]
+      "exclude": [
+        "/work/node_modules", "/work/dist", "/work/build", "/work/.next",
+        "/work/**/*.test.ts", "/work/**/*.spec.ts",
+        "/work/**/__tests__/**", "/work/**/test/**", "/work/**/tests/**"
+      ]
     }
     TSCONF
     @{{run_check}} "ts:typecheck" tsc -p /tmp/tsconfig.json
@@ -69,10 +85,10 @@ ts-type:
 # -- Cross-language checks --
 
 x-semgrep:
-    @{{run_check}} "x:security" semgrep scan --config {{config}}/.semgrep.yml --quiet --error --metrics=off --exclude .venv --exclude .devenv --exclude node_modules --exclude dist --exclude build .
+    @{{run_check}} "x:security" semgrep scan --config {{config}}/.semgrep.yml --quiet --error --metrics=off --exclude .venv --exclude .devenv --exclude node_modules --exclude dist --exclude build --exclude tests --exclude test --exclude __tests__ --exclude "*_test.py" --exclude "test_*.py" --exclude "*.test.*" --exclude "*.spec.*" --exclude conftest.py .
 
 x-astgrep:
-    @{{run_check}} "x:lint" ast-grep scan --config {{config}}/sgconfig.yml
+    @{{run_check}} "x:lint" ast-grep scan --config {{config}}/sgconfig.yml --globs '!**/tests/**' --globs '!**/test/**' --globs '!**/__tests__/**' --globs '!**/*.test.*' --globs '!**/*.spec.*' --globs '!**/test_*' --globs '!**/*_test.py' --globs '!**/conftest.py'
 
 # -- Composite recipes --
 

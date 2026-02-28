@@ -290,6 +290,15 @@ Exit codes: `0` = pass, `2` = fail (Claude Code convention for "block and feed b
 | semgrep | `.semgrep.yml` | Custom rules: no-eval, no-hardcoded-secrets |
 | ast-grep | `sgconfig.yml` | Points to `rules/` directory |
 
+### Test File Exclusions
+
+All tools are configured to skip common test file patterns by default:
+
+- **Python:** `tests/`, `test/`, `test_*.py`, `*_test.py`, `conftest.py`
+- **TypeScript:** `__tests__/`, `*.test.ts`, `*.spec.ts`, `*.test.js`, `*.spec.js`, `tests/`, `test/`
+
+Exclusions are set via config files where supported (`pyproject.toml`, `biome.json`, `tsconfig.json`, `.semgrep.yml`) and via CLI flags in the Justfiles for tools that don't support config-based exclusions.
+
 ## Adding a New Tool
 
 1. **Install it** — add to `pyproject.toml` dev deps (Python) or `package.json` devDependencies (TypeScript)

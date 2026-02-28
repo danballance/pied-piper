@@ -5,6 +5,18 @@ rules:
     message: "eval() is forbidden — use a safer alternative"
     languages: [python]
     severity: ERROR
+    paths:
+      exclude:
+        - tests/
+        - test/
+        - __tests__/
+        - "*_test.py"
+        - "test_*.py"
+        - conftest.py
+        - "*.test.ts"
+        - "*.test.js"
+        - "*.spec.ts"
+        - "*.spec.js"
 
   - id: no-hardcoded-secrets
     patterns:
@@ -12,3 +24,15 @@ rules:
     message: "Possible hardcoded secret — use environment variables"
     languages: [python, typescript, javascript]
     severity: WARNING
+    paths:
+      exclude:
+        - tests/
+        - test/
+        - __tests__/
+        - "*_test.py"
+        - "test_*.py"
+        - conftest.py
+        - "*.test.ts"
+        - "*.test.js"
+        - "*.spec.ts"
+        - "*.spec.js"

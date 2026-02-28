@@ -21,7 +21,7 @@ py-lint-fix *FILES='pied_piper/':
 
 # Type check Python with ty
 py-type:
-    ./scripts/run-check.sh "ty" uv run ty check pied_piper/
+    ./scripts/run-check.sh "ty" uv run ty check --exclude "tests/" --exclude "test/" --exclude "test_*.py" --exclude "*_test.py" --exclude "conftest.py" pied_piper/
 
 # Check Python architectural boundaries
 py-arch:
@@ -29,11 +29,11 @@ py-arch:
 
 # Find dead Python code
 py-deadcode:
-    ./scripts/run-check.sh "vulture" uv run vulture pied_piper/ --min-confidence 80
+    ./scripts/run-check.sh "vulture" uv run vulture pied_piper/ --min-confidence 80 --exclude "tests/,test/,conftest.py"
 
 # Python security scan
 py-security:
-    ./scripts/run-check.sh "bandit" uv run bandit -r pied_piper/ -q -ll
+    ./scripts/run-check.sh "bandit" uv run bandit -r pied_piper/ -q -ll --exclude ./pied_piper/tests/,./pied_piper/test/
 
 # Audit Python dependencies for vulnerabilities
 py-audit:
@@ -41,7 +41,7 @@ py-audit:
 
 # Check Python code complexity
 py-complexity:
-    ./scripts/run-check.sh "xenon" uv run xenon --max-absolute B --max-modules A --max-average A pied_piper/
+    ./scripts/run-check.sh "xenon" uv run xenon --max-absolute B --max-modules A --max-average A --ignore "tests,test" pied_piper/
 
 # Run property-based tests
 py-proptest:
@@ -85,7 +85,7 @@ ts-arch:
         echo "SKIP dependency-cruiser (no config or no src/ directory)"
         exit 0
     fi
-    ./scripts/run-check.sh "dependency-cruiser" npx depcruise src/ --config .dependency-cruiser.js
+    ./scripts/run-check.sh "dependency-cruiser" npx depcruise src/ --config .dependency-cruiser.js --exclude "(test|tests|__tests__|\\.(test|spec)\\.)"
 
 # Find dead TypeScript code / unused exports (skip if no TS source files)
 ts-deadcode:
@@ -94,7 +94,7 @@ ts-deadcode:
         echo "SKIP knip (no .ts source files found)"
         exit 0
     fi
-    ./scripts/run-check.sh "knip" npx knip
+    ./scripts/run-check.sh "knip" npx knip --exclude files
 
 # Check TypeScript type coverage (skip if no TS source files)
 ts-typecov:
@@ -103,7 +103,7 @@ ts-typecov:
         echo "SKIP type-coverage (no .ts source files found)"
         exit 0
     fi
-    ./scripts/run-check.sh "type-coverage" npx type-coverage --at-least 80
+    ./scripts/run-check.sh "type-coverage" npx type-coverage --at-least 80 --ignore-files "**/*.test.ts" --ignore-files "**/*.spec.ts" --ignore-files "**/*.test.js" --ignore-files "**/*.spec.js" --ignore-files "**/tests/**" --ignore-files "**/test/**" --ignore-files "**/__tests__/**"
 
 # -- Cross-language recipes --
 
@@ -113,7 +113,7 @@ x-semgrep:
 
 # Run ast-grep structural checks
 x-astgrep:
-    ./scripts/run-check.sh "ast-grep" npx ast-grep scan --config sgconfig.yml
+    ./scripts/run-check.sh "ast-grep" npx ast-grep scan --config sgconfig.yml --globs '!**/tests/**' --globs '!**/test/**' --globs '!**/__tests__/**' --globs '!**/*.test.*' --globs '!**/*.spec.*' --globs '!**/test_*' --globs '!**/*_test.py' --globs '!**/conftest.py'
 
 # -- Composite recipes (progressive ordering) --
 

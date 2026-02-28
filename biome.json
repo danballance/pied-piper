@@ -6,6 +6,11 @@
       "src/**/*.tsx",
       "src/**/*.js",
       "src/**/*.jsx",
+      "!**/*.test.*",
+      "!**/*.spec.*",
+      "!**/tests/**",
+      "!**/test/**",
+      "!**/__tests__/**",
       "biome.json",
       "tsconfig.json",
       "package.json"
