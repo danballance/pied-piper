@@ -18,6 +18,9 @@ node_modules/
 .semgrep/
 .mutmut-cache/
 
+# Worktrees
+.worktrees/
+
 # Project outputs
 results/*
 !results/.gitkeep
