@@ -20,6 +20,7 @@ Detailed reference for each guardrail tool. See [README.md](README.md) for recip
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+extend-exclude = ["tests/", "test/", "test_*.py", "*_test.py", "conftest.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ",
@@ -67,20 +68,20 @@ select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ",
 
 **Version:** 2.6
 
-**Config:** `pyproject.toml`
+**Config:** `pyproject.toml` — not yet configured. Add a `[tool.importlinter]` section when your project has enough modules to warrant architectural boundaries. Example:
 
 ```toml
 [tool.importlinter]
 root_packages = ["pied_piper"]
 
 [[tool.importlinter.contracts]]
-name = "Placeholder contract"
+name = "No direct DB access from API layer"
 type = "forbidden"
-source_modules = ["pied_piper"]
-forbidden_modules = []
+source_modules = ["pied_piper.api"]
+forbidden_modules = ["pied_piper.db"]
 ```
 
-**Recipe:** `just py-arch`
+**Recipe:** `just py-arch` (Docker skips gracefully if no config; native recipe requires config to be present)
 
 **Contract types:**
 - `forbidden` — prevent specific imports (e.g., no ORM in API layer)
@@ -88,8 +89,8 @@ forbidden_modules = []
 - `independence` — ensure modules don't depend on each other
 
 **Tuning:**
-- The current config has a placeholder contract with no forbidden modules
-- As the project grows, define real contracts based on your module structure
+- No contracts are currently configured — the recipe will skip (Docker) or require setup (native)
+- As the project grows, define contracts based on your module structure
 - Example: prevent `pied_piper.api` from importing `pied_piper.db` directly
 
 **Docs:** https://github.com/seddomon/import-linter
@@ -238,15 +239,19 @@ def test_add_commutative(a, b):
 {
   "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
   "files": {
-    "includes": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx",
-                 "biome.json", "tsconfig.json", "package.json"]
+    "includes": [
+      "src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx",
+      "!**/*.test.*", "!**/*.spec.*",
+      "!**/tests/**", "!**/test/**", "!**/__tests__/**",
+      "biome.json", "tsconfig.json", "package.json"
+    ]
   },
   "linter": { "enabled": true, "rules": { "recommended": true } },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 }
 }
 ```
 
-The `files.includes` whitelist prevents biome from scanning non-project files (like `.devenv/` HTML files).
+The `files.includes` whitelist prevents biome from scanning non-project files (like `.devenv/` HTML files). Negation patterns exclude test files from all checks.
 
 **Recipes:**
 - `just ts-format` — check formatting
@@ -278,7 +283,11 @@ The `files.includes` whitelist prevents biome from scanning non-project files (l
     "esModuleInterop": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts", "**/*.spec.ts",
+    "**/__tests__/**", "**/test/**", "**/tests/**"
+  ]
 }
 ```
 
@@ -353,6 +362,18 @@ rules:
     message: "eval() is forbidden"
     languages: [python]
     severity: ERROR
+    paths:
+      exclude:
+        - tests/
+        - test/
+        - __tests__/
+        - "*_test.py"
+        - "test_*.py"
+        - conftest.py
+        - "*.test.ts"
+        - "*.test.js"
+        - "*.spec.ts"
+        - "*.spec.js"
 
   - id: no-hardcoded-secrets
     patterns:
@@ -360,6 +381,18 @@ rules:
     message: "Possible hardcoded secret"
     languages: [python, typescript, javascript]
     severity: WARNING
+    paths:
+      exclude:
+        - tests/
+        - test/
+        - __tests__/
+        - "*_test.py"
+        - "test_*.py"
+        - conftest.py
+        - "*.test.ts"
+        - "*.test.js"
+        - "*.spec.ts"
+        - "*.spec.js"
 ```
 
 **Recipe:** `just x-semgrep`

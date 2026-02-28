@@ -49,7 +49,7 @@ just --list
 | Command | What it runs | Speed |
 |---------|-------------|-------|
 | `pied-piper check-fast` | format + lint + type check (all languages) | ~5s |
-| `pied-piper check-full` | check-fast + security + dead code + complexity + semgrep | ~15s |
+| `pied-piper check-full` | check-fast + architecture + security + dead code + complexity + semgrep + ast-grep | ~15s |
 | `pied-piper check-pr` | Full check suite | ~15s |
 | `pied-piper fix` | Auto-fix formatting and lint issues | ~5s |
 | `pied-piper version` | Print version | instant |
@@ -92,6 +92,7 @@ The wrapper auto-mounts `.venv` and `node_modules` when they exist in the projec
 
 - **pip-audit excluded** — requires network access; use `just py-audit` via the native workflow
 - **Test tools excluded** — hypothesis and mutmut need the project's test suite installed
+- **TS architecture/dead code/type coverage excluded** — dependency-cruiser, knip, and type-coverage are not included in the Docker image
 - **~1-3s startup overhead** per invocation (Docker container startup)
 - **macOS** — Docker bind mount I/O is 2-5x slower than native
 
@@ -221,12 +222,12 @@ Hooks are configured in `.claude/settings.local.json`. Choose the configuration 
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "command": "just check-edit"
+        "hooks": [{ "type": "command", "command": "just check-edit" }]
       }
     ],
     "Stop": [
       {
-        "command": "just check-stop"
+        "hooks": [{ "type": "command", "command": "just check-stop" }]
       }
     ]
   }
@@ -268,9 +269,9 @@ Exit codes: `0` = pass, `2` = fail (Claude Code convention for "block and feed b
 
 | Tool | Config section | Key settings |
 |------|---------------|-------------|
-| ruff | `[tool.ruff]` | line-length=88, target-version="py312" |
+| ruff | `[tool.ruff]` | line-length=88, target-version="py312", extend-exclude for test files |
 | ruff lint rules | `[tool.ruff.lint]` | Broad rule selection (E, F, W, I, N, UP, S, B, etc.) |
-| import-linter | `[tool.importlinter]` | root_packages, forbidden/layer contracts |
+| import-linter | `[tool.importlinter]` | Not yet configured — add root_packages and contracts per-project |
 | vulture | CLI flags in Justfile | `--min-confidence 80` |
 | bandit | CLI flags in Justfile | `-q -ll` (quiet, medium+ severity) |
 | xenon | CLI flags in Justfile | `--max-absolute B --max-modules A --max-average A` |
@@ -352,7 +353,6 @@ rules/                   # Custom ast-grep rules
 docs/
   README.md              # This file
   tools.md               # Detailed tool reference
-  ideas/                 # Research and exploration notes
   plans/                 # Design docs and implementation plans
 Dockerfile               # 4-stage multi-stage build
 .dockerignore            # Build context exclusions
