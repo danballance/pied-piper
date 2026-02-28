@@ -1,14 +1,20 @@
 {pkgs, ...}: {
+  # Load .env automatically (API keys).
+  dotenv.enable = true;
+
+  # Consolidate Python bytecode into a single directory.
+  env.PYTHONPYCACHEPREFIX = ".pycache";
+
   packages = [
-    # A python dependency outside of poetry.
+    pkgs.just
   ];
 
   enterShell = ''
-    # Set npm prefix to a writable location for global installs
+    # Set npm prefix to a writable location for global installs.
     export NPM_CONFIG_PREFIX="$HOME/.npm-global"
     export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
 
-    # Install pi-coding-agent if not already installed
+    # Install pi-coding-agent if not already installed.
     if ! command -v pi &> /dev/null; then
       echo "Installing pi-coding-agent..."
       mkdir -p "$NPM_CONFIG_PREFIX"
@@ -19,14 +25,13 @@
   languages.python = {
     enable = true;
     version = "3.12";
-    poetry = {
+    venv.enable = true;
+    uv = {
       enable = true;
-      install = {
+      sync = {
         enable = true;
-        verbosity = "debug";
+        allExtras = true;
       };
-      activate.enable = true;
-      package = pkgs.poetry;
     };
   };
 

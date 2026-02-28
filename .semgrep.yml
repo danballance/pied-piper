@@ -1,0 +1,14 @@
+rules:
+  - id: no-eval
+    patterns:
+      - pattern: eval(...)
+    message: "eval() is forbidden — use a safer alternative"
+    languages: [python]
+    severity: ERROR
+
+  - id: no-hardcoded-secrets
+    patterns:
+      - pattern-regex: '(password|secret|api_key|token)\s*=\s*[\"''][^\"'']+[\"'']'
+    message: "Possible hardcoded secret — use environment variables"
+    languages: [python, typescript, javascript]
+    severity: WARNING

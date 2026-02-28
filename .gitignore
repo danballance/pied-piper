@@ -1,7 +1,23 @@
+# Environment and secrets
 .env
-results/*
-!results/.gitkeep
+
+# devenv / direnv
+.devenv/
+.direnv/
+
+# Python
 .venv/
 __pycache__/
 *.pyc
-.devenv/
+.pycache/
+
+# Node
+node_modules/
+
+# Tool caches
+.semgrep/
+.mutmut-cache/
+
+# Project outputs
+results/*
+!results/.gitkeep

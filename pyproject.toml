@@ -1,0 +1,41 @@
+[project]
+name = "pied-piper"
+version = "0.1.0"
+description = "Pied Piper AI project"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "ty",
+    "import-linter",
+    "vulture",
+    "bandit",
+    "pip-audit",
+    "xenon",
+    "hypothesis",
+    "mutmut",
+    "semgrep>=1.0.0",
+    "pytest",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ", "T10", "ISC", "ICN", "PIE", "PT", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "ARG", "ERA", "PL", "PERF", "RUF"]
+
+[tool.importlinter]
+root_packages = ["pied_piper"]
+
+[[tool.importlinter.contracts]]
+name = "Placeholder contract"
+type = "forbidden"
+source_modules = ["pied_piper"]
+forbidden_modules = []
