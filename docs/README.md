@@ -8,7 +8,7 @@ Prerequisites: Docker installed and running.
 
 ```bash
 # Install the wrapper script (puts `pied-piper` on your PATH)
-curl -sSL https://raw.githubusercontent.com/your-org/pied-piper/main/install.sh | sh
+curl -sSL https://raw.githubusercontent.com/danballance/pied-piper/main/install.sh | sh
 
 # Run fast checks (format + lint + type check)
 pied-piper check-fast
