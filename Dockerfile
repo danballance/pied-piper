@@ -46,13 +46,14 @@ ENV PATH="/opt/node_modules/.bin:$PATH"
 ENV NODE_PATH="/opt/node_modules"
 ENV SEMGREP_SETTINGS_FILE="/tmp/semgrep-settings.yaml"
 ENV SEMGREP_LOG_FILE="/tmp/semgrep.log"
+ENV PIED_PIPER_MODE=docker
 
 # Copy baked-in configs
-COPY biome.json .semgrep.yml sgconfig.yml pyproject.toml /etc/pied-piper/
+COPY biome.json .semgrep.yml sgconfig.yml pyproject.toml tsconfig.json /etc/pied-piper/
 COPY rules/ /etc/pied-piper/rules/
 
 # Copy orchestration
-COPY docker/Justfile /opt/pied-piper/Justfile
+COPY Justfile /opt/pied-piper/Justfile
 COPY scripts/run-check.sh /opt/pied-piper/scripts/run-check.sh
 RUN chmod +x /opt/pied-piper/scripts/run-check.sh
 

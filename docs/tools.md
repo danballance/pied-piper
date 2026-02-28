@@ -81,7 +81,7 @@ source_modules = ["pied_piper.api"]
 forbidden_modules = ["pied_piper.db"]
 ```
 
-**Recipe:** `just py-arch` (Docker skips gracefully if no config; native recipe requires config to be present)
+**Recipe:** `just py-arch` (skips gracefully if no `[tool.importlinter]` config in `pyproject.toml`)
 
 **Contract types:**
 - `forbidden` — prevent specific imports (e.g., no ORM in API layer)
@@ -89,7 +89,7 @@ forbidden_modules = ["pied_piper.db"]
 - `independence` — ensure modules don't depend on each other
 
 **Tuning:**
-- No contracts are currently configured — the recipe will skip (Docker) or require setup (native)
+- No contracts are currently configured — the recipe will skip gracefully
 - As the project grows, define contracts based on your module structure
 - Example: prevent `pied_piper.api` from importing `pied_piper.db` directly
 
@@ -122,7 +122,7 @@ forbidden_modules = ["pied_piper.db"]
 
 **Version:** 1.9.4
 
-**Config:** CLI flags in Justfile: `-r pied_piper/ -q -ll`
+**Config:** CLI flags in Justfile: `-r . -q -ll`
 - `-r` — recursive scan
 - `-q` — quiet output (errors only)
 - `-ll` — medium and high severity only (skip low)
@@ -135,27 +135,6 @@ forbidden_modules = ["pied_piper.db"]
 - Suppress per-file: `.bandit` config or `[tool.bandit]` in `pyproject.toml`
 
 **Docs:** https://bandit.readthedocs.io/
-
----
-
-### pip-audit
-
-**What it does:** Scans Python dependencies for known vulnerabilities by checking against the OSV (Open Source Vulnerabilities) database. Works with pip, poetry, and uv lock files.
-
-**Version:** 2.9.0
-
-**Config:** No config file — runs against the current environment's installed packages.
-
-**Recipe:** `just py-audit`
-
-> **Note:** pip-audit is excluded from the Docker image because it requires network access to query vulnerability databases, which conflicts with the `--network none` security policy. It remains available via the native workflow (`just py-audit`).
-
-**Tuning:**
-- Produces zero output when clean
-- If a vulnerability is found, it reports the package, version, and CVE
-- Fix by updating the dependency: `uv lock --upgrade-package <package>`
-
-**Docs:** https://github.com/pypa/pip-audit
 
 ---
 
@@ -179,49 +158,6 @@ Grades: A (1-5), B (6-10 or 11-15 depending on metric), C (16-25+)
 - If too lenient, tighten to `--max-absolute A`
 
 **Docs:** https://github.com/rubik/xenon
-
----
-
-### hypothesis
-
-**What it does:** Property-based testing framework. Instead of testing specific examples, you define properties that must hold for all inputs, and Hypothesis generates hundreds of random test cases automatically, with automatic shrinking to minimal failing cases.
-
-**Version:** 6.151.9
-
-**Config:** Tests are marked with `@given` decorator and `pytest -m hypothesis` marker.
-
-**Recipe:** `just py-proptest`
-
-**Usage:**
-```python
-from hypothesis import given
-from hypothesis import strategies as st
-
-@given(st.integers(), st.integers())
-def test_add_commutative(a, b):
-    assert add(a, b) == add(b, a)
-```
-
-**Docs:** https://hypothesis.readthedocs.io/
-
----
-
-### mutmut
-
-**What it does:** Mutation testing — makes small changes to source code (replacing `>` with `>=`, `True` with `False`, etc.) and runs your test suite. Surviving mutants reveal gaps in test coverage. Validates that tests actually catch bugs, not just execute code.
-
-**Version:** 3.5.0
-
-**Config:** CLI flags in Justfile: `--paths-to-mutate pied_piper/`
-
-**Recipe:** `just py-mutate` (slow, run manually)
-
-**Tuning:**
-- Very slow — runs your full test suite for each mutation
-- Use `--paths-to-mutate` to limit scope
-- Results are cached in `.mutmut-cache/` (gitignored)
-
-**Docs:** https://mutmut.readthedocs.io/
 
 ---
 

@@ -1,6 +1,6 @@
 # Pied Piper Guardrails Orchestrator
 
-Pied Piper wires deterministic checks (formatting, linting, type checking, architecture enforcement, security scanning, dead code detection, and more) into agentic coding workflows with Claude Code. It ships as a Docker image that packages all 14 tools into a single command — no venvs, no config files, no tool installation required. A native Justfile workflow is also available for development and contribution.
+Pied Piper wires deterministic checks (formatting, linting, type checking, architecture enforcement, security scanning, dead code detection, and more) into agentic coding workflows with Claude Code. It ships as a Docker image that packages all 13 tools into a single command — no venvs, no config files, no tool installation required. A single shared Justfile drives both Docker and native workflows.
 
 ## Quick Start (Docker)
 
@@ -54,9 +54,9 @@ just --list
 | `pied-piper fix` | Auto-fix formatting and lint issues | ~5s |
 | `pied-piper version` | Print version | instant |
 
-### Output Format (Docker)
+### Output Format
 
-Docker output uses generic category names — individual tool names are never shown:
+Both Docker and native workflows use the same category-based output format:
 
 ```
 OK   py:format
@@ -90,13 +90,10 @@ The wrapper auto-mounts `.venv` and `node_modules` when they exist in the projec
 
 ### Known Limitations (Docker)
 
-- **pip-audit excluded** — requires network access; use `just py-audit` via the native workflow
-- **Test tools excluded** — hypothesis and mutmut need the project's test suite installed
-- **TS architecture/dead code/type coverage excluded** — dependency-cruiser, knip, and type-coverage are not included in the Docker image
 - **~1-3s startup overhead** per invocation (Docker container startup)
 - **macOS** — Docker bind mount I/O is 2-5x slower than native
 
-## Recipe Reference (Native)
+## Recipe Reference
 
 ### Python-Specific
 
@@ -110,14 +107,11 @@ The wrapper auto-mounts `.venv` and `node_modules` when they exist in the projec
 | `just py-arch` | import-linter | Enforce architectural boundaries between modules |
 | `just py-deadcode` | vulture | Detect unused functions, classes, variables |
 | `just py-security` | bandit | Security scan (SAST) for common vulnerabilities |
-| `just py-audit` | pip-audit | Scan dependencies for known vulnerabilities |
 | `just py-complexity` | xenon | Enforce code complexity thresholds |
-| `just py-proptest` | hypothesis | Run property-based tests |
-| `just py-mutate` | mutmut | Run mutation testing (slow, batch) |
 
-Python recipes accept an optional `FILES` argument (default: `pied_piper/`):
+Python format/lint recipes accept an optional `FILES` argument (default: `.`):
 ```bash
-just py-lint pied_piper/sample.py
+just py-lint src/
 ```
 
 ### TypeScript-Specific
@@ -149,9 +143,7 @@ These run tools in progressive order (fast to slow):
 | Recipe | Includes | Speed |
 |--------|----------|-------|
 | `just check-fast` | format + lint + type (all languages) | <5s |
-| `just check-arch` | check-fast + architecture + dead code + security + complexity + semgrep + ast-grep | ~15s |
-| `just check-all` | check-arch + property tests | minutes |
-| `just check-mutate` | mutation testing | batch (slow) |
+| `just check-full` | check-fast + architecture + dead code + security + complexity + semgrep + ast-grep | ~15s |
 
 ### Hook-Targeted Recipes
 
@@ -160,32 +152,26 @@ These are aliases for composite recipes, named for the Claude Code hook event th
 | Recipe | Alias for | Triggered by |
 |--------|-----------|-------------|
 | `just check-edit` | check-fast | PostToolUse (after Edit/Write) |
-| `just check-stop` | check-arch | Stop (before Claude finishes) |
-| `just check-pr` | check-all | Manual / CI |
+| `just check-stop` | check-full | Stop (before Claude finishes) |
+| `just check-pr` | check-full | Manual / CI |
 
 ### Utility Recipes
 
 | Recipe | What it does |
 |--------|-------------|
 | `just tools-install` | Run `uv sync` and `npm install` |
-| `just tools-status` | Print installed/missing status for all 14 tools |
+| `just tools-status` | Print installed/missing status for all 13 tools |
 
 ## Progressive Checking
 
-The guardrails are organized into progressive tiers so fast checks run frequently and slow checks run less often:
+The guardrails are organized into two tiers so fast checks run frequently and the full suite runs less often:
 
 ```
 check-edit (every file edit)
   └── check-fast: format → lint → type check
 
-check-stop (before Claude finishes a task)
-  └── check-arch: check-fast + architecture + dead code + security + complexity + semgrep
-
-check-pr (PR validation)
-  └── check-all: check-arch + property tests
-
-check-mutate (manual, batch)
-  └── mutation testing
+check-stop / check-pr (before Claude finishes / PR validation)
+  └── check-full: check-fast + architecture + dead code + security + complexity + semgrep + ast-grep
 ```
 
 This ensures the agent gets immediate feedback on formatting/lint/type errors (<5s) without being blocked by slower checks until it's done working.
@@ -243,20 +229,18 @@ Hooks are configured in `.claude/settings.local.json`. Choose the configuration 
 5. When Claude is about to finish, the `Stop` hook runs `just check-stop` (full suite)
 6. If the full suite fails, Claude continues fixing instead of stopping
 
-### Output Format (Native)
+### Output Format
 
-> **Note:** The Docker workflow uses generic category names in output (`OK py:format`, `FAIL ts:lint`) instead of tool names. See [Docker CLI Reference](#docker-cli-reference) above.
-
-The `scripts/run-check.sh` helper normalizes output across all tools:
+Both Docker and native workflows share the same Justfile and produce identical output. The `scripts/run-check.sh` helper normalizes output across all tools:
 
 ```
 # On success:
-OK ruff format
-OK ruff check
-OK ty
+OK   py:format
+OK   py:lint
+OK   py:typecheck
 
 # On failure:
-FAIL ruff check
+FAIL py:lint
   pied_piper/main.py:14:5 F841 Local variable `x` is assigned but never used
   Found 1 error (0 fixed)
 ```
@@ -298,13 +282,13 @@ All tools are configured to skip common test file patterns by default:
 - **Python:** `tests/`, `test/`, `test_*.py`, `*_test.py`, `conftest.py`
 - **TypeScript:** `__tests__/`, `*.test.ts`, `*.spec.ts`, `*.test.js`, `*.spec.js`, `tests/`, `test/`
 
-Exclusions are set via config files where supported (`pyproject.toml`, `biome.json`, `tsconfig.json`, `.semgrep.yml`) and via CLI flags in the Justfiles for tools that don't support config-based exclusions.
+Exclusions are set via config files where supported (`pyproject.toml`, `biome.json`, `tsconfig.json`, `.semgrep.yml`) and via CLI flags in the Justfile for tools that don't support config-based exclusions.
 
 ## Adding a New Tool
 
 1. **Install it** — add to `pyproject.toml` dev deps (Python) or `package.json` devDependencies (TypeScript)
-2. **Create the recipe** — add a `just` recipe in the appropriate group, wrapping the command with `./scripts/run-check.sh`
-3. **Wire into composites** — add the recipe name to `check-arch` or `check-all` depending on speed
+2. **Create the recipe** — add a `just` recipe in the appropriate group, wrapping the command with `{{run_check}}`
+3. **Wire into composites** — add the recipe name to `check-fast` or `check-full` depending on speed
 4. **Add config** — create any needed config files, or add a section to `pyproject.toml`
 5. **Test** — run the recipe individually, then run the composite it belongs to
 
@@ -313,12 +297,12 @@ Example — adding a new Python tool called `mynewtool`:
 ```just
 # Check something with mynewtool
 py-newtool:
-    ./scripts/run-check.sh "mynewtool" uv run mynewtool pied_piper/
+    @{{run_check}} "py:newtool" mynewtool .
 ```
 
-Then add `py-newtool` to the `check-arch` dependency list.
+Then add `py-newtool` to the `check-full` dependency list.
 
-**Docker image:** To include the new tool in the Docker distribution, also add it to `docker/Justfile` (using category names like `py:newtool`) and `docker/pyproject.toml` (for Python tools). Then rebuild the image.
+**Docker image:** To include the new tool in the Docker image, add it to `docker/pyproject.toml` (for Python tools) or `package.json` (for TypeScript tools). The shared Justfile handles both environments automatically. Then rebuild the image.
 
 ## Fixing Issues
 
@@ -345,8 +329,7 @@ bin/
   pied-piper             # Docker wrapper script (user-facing CLI)
 docker/
   entrypoint.sh          # Container CLI router + env stripping
-  Justfile               # Container-specific recipes (category names)
-  pyproject.toml         # Container deps (pip-audit excluded)
+  pyproject.toml         # Container Python deps
 scripts/
   run-check.sh           # Output normalizer (OK/FAIL, exit 2)
 rules/                   # Custom ast-grep rules
@@ -357,7 +340,7 @@ docs/
 Dockerfile               # 4-stage multi-stage build
 .dockerignore            # Build context exclusions
 install.sh               # curl|sh installer for wrapper script
-Justfile                 # All guardrail recipes (native workflow)
+Justfile                 # All guardrail recipes (shared: native + Docker)
 pyproject.toml           # Python deps + ruff/import-linter config
 package.json             # TypeScript deps
 biome.json               # Biome linter/formatter config

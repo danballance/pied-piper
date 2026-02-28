@@ -1,168 +1,231 @@
 # Pied Piper Guardrails Orchestrator
 # Usage: just <recipe> or just --list
+#
+# Shared Justfile for native and Docker workflows.
+# Auto-detects mode via PIED_PIPER_MODE env var (set by Dockerfile).
 
-# -- Python-specific recipes --
+mode := env_var_or_default("PIED_PIPER_MODE", "native")
 
-# Format Python code with ruff
-py-format *FILES='pied_piper/':
-    ./scripts/run-check.sh "ruff format" uv run ruff format --check {{FILES}}
+config := if mode == "docker" { "/etc/pied-piper" } else { "." }
+run_check := if mode == "docker" { "/opt/pied-piper/scripts/run-check.sh" } else { "./scripts/run-check.sh" }
+exclude_dirs := ".venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git,tests,test,__tests__"
 
-# Fix Python formatting in place
-py-format-fix *FILES='pied_piper/':
-    uv run ruff format {{FILES}}
+venv_bin := if mode == "docker" { "/opt/venv/bin" } else { ".venv/bin" }
+node_bin := if mode == "docker" { "/opt/node_modules/.bin" } else { "node_modules/.bin" }
+export PATH := venv_bin + ":" + node_bin + ":" + env_var("PATH")
 
-# Lint Python code with ruff
-py-lint *FILES='pied_piper/':
-    ./scripts/run-check.sh "ruff check" uv run ruff check {{FILES}}
+# -- Python checks --
 
-# Fix Python lint issues in place
-py-lint-fix *FILES='pied_piper/':
-    uv run ruff check --fix {{FILES}}
+# Format Python code
+py-format *FILES='.':
+    @{{run_check}} "py:format" ruff format --check --cache-dir /tmp/ruff-cache --config {{config}}/pyproject.toml {{FILES}}
 
-# Type check Python with ty
+# Lint Python code
+py-lint *FILES='.':
+    @{{run_check}} "py:lint" ruff check --cache-dir /tmp/ruff-cache --config {{config}}/pyproject.toml {{FILES}}
+
+# Type check Python
 py-type:
-    ./scripts/run-check.sh "ty" uv run ty check --exclude "tests/" --exclude "test/" --exclude "test_*.py" --exclude "*_test.py" --exclude "conftest.py" pied_piper/
+    #!/usr/bin/env bash
+    ty_args=(check --exclude ".venv/" --exclude ".devenv/" --exclude "node_modules/" \
+             --exclude "tests/" --exclude "test/" --exclude "test_*.py" \
+             --exclude "*_test.py" --exclude "conftest.py")
+    for sp in .venv/lib/python*/site-packages; do
+        if [ -d "$sp" ]; then
+            ty_args+=(--extra-search-path "$sp")
+        fi
+    done
+    {{run_check}} "py:typecheck" ty "${ty_args[@]}" .
 
 # Check Python architectural boundaries
 py-arch:
-    ./scripts/run-check.sh "import-linter" uv run lint-imports
+    #!/usr/bin/env bash
+    if [ -f pyproject.toml ] && grep -q '\[tool.importlinter\]' pyproject.toml; then
+        {{run_check}} "py:architecture" lint-imports --no-cache
+    else
+        echo "SKIP py:architecture (no [tool.importlinter] config in project)"
+    fi
 
 # Find dead Python code
 py-deadcode:
-    ./scripts/run-check.sh "vulture" uv run vulture pied_piper/ --min-confidence 80 --exclude "tests/,test/,conftest.py"
+    @{{run_check}} "py:deadcode" vulture . --min-confidence 80 --exclude {{exclude_dirs}}
 
 # Python security scan
 py-security:
-    ./scripts/run-check.sh "bandit" uv run bandit -r pied_piper/ -q -ll --exclude ./pied_piper/tests/,./pied_piper/test/
-
-# Audit Python dependencies for vulnerabilities
-py-audit:
-    ./scripts/run-check.sh "pip-audit" uv run pip-audit
+    @{{run_check}} "py:security" bandit -r . -q -ll --exclude ./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next,./tests,./test
 
 # Check Python code complexity
 py-complexity:
-    ./scripts/run-check.sh "xenon" uv run xenon --max-absolute B --max-modules A --max-average A --ignore "tests,test" pied_piper/
+    @{{run_check}} "py:complexity" xenon --max-absolute B --max-modules A --max-average A --exclude "{{exclude_dirs}}" .
 
-# Run property-based tests
-py-proptest:
-    ./scripts/run-check.sh "hypothesis" uv run pytest -m hypothesis -v --tb=short
+# -- Python fix recipes --
 
-# Run mutation testing (slow, batch only)
-py-mutate:
-    uv run mutmut run --paths-to-mutate pied_piper/
+# Fix Python formatting in place
+py-format-fix *FILES='.':
+    ruff format --cache-dir /tmp/ruff-cache --config {{config}}/pyproject.toml {{FILES}}
 
-# -- TypeScript-specific recipes --
+# Fix Python lint issues in place
+py-lint-fix *FILES='.':
+    ruff check --cache-dir /tmp/ruff-cache --fix --config {{config}}/pyproject.toml {{FILES}}
 
-# Format TypeScript with biome
+# -- TypeScript checks --
+
+# Format TypeScript/JS code
 ts-format *FILES='.':
-    ./scripts/run-check.sh "biome format" npx biome format {{FILES}}
-
-# Fix TypeScript formatting in place
-ts-format-fix *FILES='.':
-    npx biome format --write {{FILES}}
-
-# Lint TypeScript with biome
-ts-lint *FILES='.':
-    ./scripts/run-check.sh "biome lint" npx biome lint {{FILES}}
-
-# Fix TypeScript lint issues in place
-ts-lint-fix *FILES='.':
-    npx biome lint --write {{FILES}}
-
-# Type check TypeScript (skip if no TS source files)
-ts-type:
     #!/usr/bin/env bash
-    if ! find src/ -name '*.ts' 2>/dev/null | grep -q .; then
-        echo "SKIP tsc (no .ts source files found)"
+    if ! find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -print 2>/dev/null | head -1 | grep -q .; then
+        echo "SKIP ts:format (no JS/TS source files found)"
         exit 0
     fi
-    ./scripts/run-check.sh "tsc" npx tsc --noEmit
+    {{run_check}} "ts:format" biome format --config-path {{config}} {{FILES}}
 
-# Check TypeScript architectural boundaries (skip if no config or no src/)
+# Lint TypeScript/JS code
+ts-lint *FILES='.':
+    #!/usr/bin/env bash
+    if ! find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -print 2>/dev/null | head -1 | grep -q .; then
+        echo "SKIP ts:lint (no JS/TS source files found)"
+        exit 0
+    fi
+    {{run_check}} "ts:lint" biome lint --config-path {{config}} {{FILES}}
+
+# Type check TypeScript
+ts-type:
+    #!/usr/bin/env bash
+    if ! find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o -name '*.ts' -print 2>/dev/null | head -1 | grep -q .; then
+        echo "SKIP ts:typecheck (no .ts source files found)"
+        exit 0
+    fi
+    if [ -f tsconfig.json ]; then
+        {{run_check}} "ts:typecheck" tsc --noEmit
+    else
+        cat > /tmp/tsconfig.json <<'TSCONF'
+    {
+      "compilerOptions": {
+        "target": "ES2022", "module": "Node16", "moduleResolution": "Node16",
+        "strict": true, "noEmit": true, "skipLibCheck": true, "esModuleInterop": true
+      },
+      "include": ["**/*.ts", "**/*.tsx"],
+      "exclude": [
+        "node_modules", "dist", "build", ".next",
+        "**/*.test.ts", "**/*.spec.ts",
+        "**/__tests__/**", "**/test/**", "**/tests/**"
+      ]
+    }
+    TSCONF
+        {{run_check}} "ts:typecheck" tsc -p /tmp/tsconfig.json
+    fi
+
+# Check TypeScript architectural boundaries
 ts-arch:
     #!/usr/bin/env bash
     if [ ! -f .dependency-cruiser.js ] || [ ! -d src/ ]; then
-        echo "SKIP dependency-cruiser (no config or no src/ directory)"
+        echo "SKIP ts:architecture (no config or no src/ directory)"
         exit 0
     fi
-    ./scripts/run-check.sh "dependency-cruiser" npx depcruise src/ --config .dependency-cruiser.js --exclude "(test|tests|__tests__|\\.(test|spec)\\.)"
+    {{run_check}} "ts:architecture" depcruise src/ --config .dependency-cruiser.js --exclude "(test|tests|__tests__|\\.(test|spec)\\.)"
 
-# Find dead TypeScript code / unused exports (skip if no TS source files)
+# Find dead TypeScript code / unused exports
 ts-deadcode:
     #!/usr/bin/env bash
     if ! find src/ -name '*.ts' 2>/dev/null | grep -q .; then
-        echo "SKIP knip (no .ts source files found)"
+        echo "SKIP ts:deadcode (no .ts source files found)"
         exit 0
     fi
-    ./scripts/run-check.sh "knip" npx knip --exclude files
+    {{run_check}} "ts:deadcode" knip --exclude files
 
-# Check TypeScript type coverage (skip if no TS source files)
+# Check TypeScript type coverage
 ts-typecov:
     #!/usr/bin/env bash
     if ! find src/ -name '*.ts' 2>/dev/null | grep -q .; then
-        echo "SKIP type-coverage (no .ts source files found)"
+        echo "SKIP ts:typecov (no .ts source files found)"
         exit 0
     fi
-    ./scripts/run-check.sh "type-coverage" npx type-coverage --at-least 80 --ignore-files "**/*.test.ts" --ignore-files "**/*.spec.ts" --ignore-files "**/*.test.js" --ignore-files "**/*.spec.js" --ignore-files "**/tests/**" --ignore-files "**/test/**" --ignore-files "**/__tests__/**"
+    {{run_check}} "ts:typecov" type-coverage --at-least 80 --ignore-files "**/*.test.ts" --ignore-files "**/*.spec.ts" --ignore-files "**/*.test.js" --ignore-files "**/*.spec.js" --ignore-files "**/tests/**" --ignore-files "**/test/**" --ignore-files "**/__tests__/**"
 
-# -- Cross-language recipes --
+# -- TypeScript fix recipes --
+
+# Fix TypeScript formatting in place
+ts-format-fix *FILES='.':
+    #!/usr/bin/env bash
+    if ! find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -print 2>/dev/null | head -1 | grep -q .; then
+        echo "SKIP ts:format-fix (no JS/TS source files found)"
+        exit 0
+    fi
+    biome format --write --config-path {{config}} {{FILES}}
+
+# Fix TypeScript lint issues in place
+ts-lint-fix *FILES='.':
+    #!/usr/bin/env bash
+    if ! find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -print 2>/dev/null | head -1 | grep -q .; then
+        echo "SKIP ts:lint-fix (no JS/TS source files found)"
+        exit 0
+    fi
+    biome lint --write --config-path {{config}} {{FILES}}
+
+# -- Cross-language checks --
 
 # Run semgrep custom rules
 x-semgrep:
-    ./scripts/run-check.sh "semgrep" uv run semgrep scan --config .semgrep.yml --quiet --error pied_piper/
+    @{{run_check}} "x:security" semgrep scan --config {{config}}/.semgrep.yml --quiet --error --metrics=off --exclude .venv --exclude .devenv --exclude node_modules --exclude dist --exclude build --exclude tests --exclude test --exclude __tests__ --exclude "*_test.py" --exclude "test_*.py" --exclude "*.test.*" --exclude "*.spec.*" --exclude conftest.py .
 
 # Run ast-grep structural checks
 x-astgrep:
-    ./scripts/run-check.sh "ast-grep" npx ast-grep scan --config sgconfig.yml --globs '!**/tests/**' --globs '!**/test/**' --globs '!**/__tests__/**' --globs '!**/*.test.*' --globs '!**/*.spec.*' --globs '!**/test_*' --globs '!**/*_test.py' --globs '!**/conftest.py'
+    @{{run_check}} "x:lint" ast-grep scan --config {{config}}/sgconfig.yml --globs '!**/tests/**' --globs '!**/test/**' --globs '!**/__tests__/**' --globs '!**/*.test.*' --globs '!**/*.spec.*' --globs '!**/test_*' --globs '!**/*_test.py' --globs '!**/conftest.py'
 
-# -- Composite recipes (progressive ordering) --
+# -- Composite recipes --
 
 # Fast checks: format + lint + type (< 5s)
 check-fast: py-format py-lint py-type ts-format ts-lint ts-type
 
-# Architecture checks: fast + arch + deadcode + security
-check-arch: check-fast py-arch py-deadcode py-security py-audit py-complexity ts-arch ts-deadcode ts-typecov x-semgrep x-astgrep
-
-# All checks: arch + property tests
-check-all: check-arch py-proptest
-
-# Mutation testing (slow, run separately)
-check-mutate: py-mutate
+# Full checks: fast + architecture + security + dead code + complexity + semgrep + ast-grep
+check-full: check-fast py-arch py-deadcode py-security py-complexity ts-arch ts-deadcode ts-typecov x-semgrep x-astgrep
 
 # -- Hook-targeted recipes --
 
-# After file edit (PostToolUse hook) -- fast checks only
+# After file edit (PostToolUse hook)
 check-edit: check-fast
 
-# Before Claude stops (Stop hook) -- full architecture suite
-check-stop: check-arch
+# Before Claude stops (Stop hook)
+check-stop: check-full
 
-# PR validation -- everything
-check-pr: check-all
+# PR validation
+check-pr: check-full
 
-# -- Utility recipes --
+# -- Fix recipe --
+
+# Auto-fix formatting and lint issues
+fix:
+    #!/usr/bin/env bash
+    ruff format --cache-dir /tmp/ruff-cache --config {{config}}/pyproject.toml .
+    ruff check --cache-dir /tmp/ruff-cache --fix --config {{config}}/pyproject.toml . || true
+    if find . \( -path ./node_modules -o -path ./.venv -o -path ./.devenv -o -path ./dist -o -path ./build -o -path ./.next \) -prune -o \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -print 2>/dev/null | head -1 | grep -q .; then
+        biome format --write --config-path {{config}} .
+        biome lint --write --config-path {{config}} . || true
+    fi
+    echo "OK fix"
+
+# -- Utility recipes (native only) --
 
 # Install all guardrail tools
 tools-install:
     uv sync
     npm install
 
-# Check which tools are installed and their versions
+# Check which tools are installed
 tools-status:
     @echo "=== Python tools ==="
-    @uv run ruff --version 2>/dev/null && echo "  ruff: installed" || echo "  ruff: MISSING"
-    @uv run ty --version 2>/dev/null && echo "  ty: installed" || echo "  ty: MISSING"
-    @uv run python -c "import importlinter; print(importlinter.__version__)" 2>/dev/null && echo "  import-linter: installed" || echo "  import-linter: MISSING"
-    @uv run vulture --version 2>/dev/null && echo "  vulture: installed" || echo "  vulture: MISSING"
-    @uv run bandit --version 2>/dev/null && echo "  bandit: installed" || echo "  bandit: MISSING"
-    @uv run pip-audit --version 2>/dev/null && echo "  pip-audit: installed" || echo "  pip-audit: MISSING"
-    @uv run xenon --version 2>/dev/null && echo "  xenon: installed" || echo "  xenon: MISSING"
-    @uv run semgrep --version 2>/dev/null && echo "  semgrep: installed" || echo "  semgrep: MISSING"
+    @ruff --version 2>/dev/null && echo "  ruff: installed" || echo "  ruff: MISSING"
+    @ty --version 2>/dev/null && echo "  ty: installed" || echo "  ty: MISSING"
+    @python -c "import importlinter; print(importlinter.__version__)" 2>/dev/null && echo "  import-linter: installed" || echo "  import-linter: MISSING"
+    @vulture --version 2>/dev/null && echo "  vulture: installed" || echo "  vulture: MISSING"
+    @bandit --version 2>/dev/null && echo "  bandit: installed" || echo "  bandit: MISSING"
+    @xenon --version 2>/dev/null && echo "  xenon: installed" || echo "  xenon: MISSING"
+    @semgrep --version 2>/dev/null && echo "  semgrep: installed" || echo "  semgrep: MISSING"
     @echo ""
     @echo "=== TypeScript tools ==="
-    @npx biome --version 2>/dev/null && echo "  biome: installed" || echo "  biome: MISSING"
-    @npx tsc --version 2>/dev/null && echo "  tsc: installed" || echo "  tsc: MISSING"
-    @npx depcruise --version 2>/dev/null && echo "  dependency-cruiser: installed" || echo "  dependency-cruiser: MISSING"
-    @npx knip --version 2>/dev/null && echo "  knip: installed" || echo "  knip: MISSING"
-    @npx type-coverage --version 2>/dev/null && echo "  type-coverage: installed" || echo "  type-coverage: MISSING"
-    @npx ast-grep --version 2>/dev/null && echo "  ast-grep: installed" || echo "  ast-grep: MISSING"
+    @biome --version 2>/dev/null && echo "  biome: installed" || echo "  biome: MISSING"
+    @tsc --version 2>/dev/null && echo "  tsc: installed" || echo "  tsc: MISSING"
+    @depcruise --version 2>/dev/null && echo "  dependency-cruiser: installed" || echo "  dependency-cruiser: MISSING"
+    @knip --version 2>/dev/null && echo "  knip: installed" || echo "  knip: MISSING"
+    @type-coverage --version 2>/dev/null && echo "  type-coverage: installed" || echo "  type-coverage: MISSING"
+    @ast-grep --version 2>/dev/null && echo "  ast-grep: installed" || echo "  ast-grep: MISSING"
