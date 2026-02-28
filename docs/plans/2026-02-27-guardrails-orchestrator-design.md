@@ -1,3 +1,5 @@
+> **Status: IMPLEMENTED** (2026-02-27)
+
 # Pied Piper: Guardrails Orchestrator for Agentic Coding
 
 ## Overview
