@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -16,6 +18,8 @@ class Check:
 def _clean_env() -> dict[str, str]:
     env = os.environ.copy()
     env.pop("VIRTUAL_ENV", None)
+    tool_bin = str(Path(sys.prefix) / "bin")
+    env["PATH"] = tool_bin + os.pathsep + env.get("PATH", "")
     return env
 
 
