@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from dataclasses import dataclass
 from typing import Callable
@@ -12,11 +13,17 @@ class Check:
     skip_if: Callable[[], bool]
 
 
+def _clean_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.pop("VIRTUAL_ENV", None)
+    return env
+
+
 def run_check(check: Check) -> tuple[bool, str]:
     if check.skip_if():
         return True, f"SKIP {check.name} (not applicable)"
 
-    result = subprocess.run(check.command, capture_output=True, text=True)
+    result = subprocess.run(check.command, capture_output=True, text=True, env=_clean_env())
 
     if result.returncode == 0:
         return True, f"OK   {check.name}"
