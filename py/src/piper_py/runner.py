@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import os
 import subprocess
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Callable
 
 
 @dataclass
@@ -23,17 +23,19 @@ def run_check(check: Check) -> tuple[bool, str]:
     if check.skip_if():
         return True, f"SKIP {check.name} (not applicable)"
 
-    result = subprocess.run(check.command, capture_output=True, text=True, env=_clean_env())
+    completed = subprocess.run(
+        check.command, capture_output=True, text=True, env=_clean_env()
+    )
 
-    if result.returncode == 0:
+    if completed.returncode == 0:
         return True, f"OK   {check.name}"
 
-    output = (result.stdout + result.stderr).rstrip()
+    output = (completed.stdout + completed.stderr).rstrip()
     cmd_str = " ".join(check.command)
     return False, f"FAIL {check.name}\nCOMMAND {cmd_str}\n{output}"
 
 
-def run_checks(checks: list[Check]) -> tuple[int, list[str]]:
+def run_checks(checks: Sequence[Check]) -> tuple[int, list[str]]:
     any_failed = False
     outputs: list[str] = []
 

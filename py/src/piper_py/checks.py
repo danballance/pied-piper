@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from types import MappingProxyType
 
 from piper_py.detect import has_config_section, has_files
 from piper_py.runner import Check
@@ -9,7 +10,7 @@ EXCLUDE_DIRS_CSV = ".venv,.devenv,.direnv,node_modules,dist,build,.next,__pycach
 EXCLUDE_DIRS_DOTSLASH = (
     "./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next,./tests,./test"
 )
-EXCLUDE_DIRS = [
+EXCLUDE_DIRS = (
     ".venv",
     ".devenv",
     ".direnv",
@@ -22,10 +23,12 @@ EXCLUDE_DIRS = [
     "tests",
     "test",
     "__tests__",
-]
-_COMPLEXITY_EXCLUDE: list[str] = []
-for _d in EXCLUDE_DIRS:
-    _COMPLEXITY_EXCLUDE.extend(["--exclude", _d])
+)
+
+_EXCLUDE_FLAG = "--exclude"
+_COMPLEXITY_EXCLUDE = tuple(
+    element for dirname in EXCLUDE_DIRS for element in (_EXCLUDE_FLAG, dirname)
+)
 
 
 def _no_py() -> bool:
@@ -42,7 +45,7 @@ def _no_semgrep() -> bool:
     )
 
 
-FAST_CHECKS: list[Check] = [
+FAST_CHECKS: tuple[Check, ...] = (
     Check(
         name="py:format",
         command=["ruff", "format", "--check", "."],
@@ -58,29 +61,29 @@ FAST_CHECKS: list[Check] = [
         command=[
             "ty",
             "check",
-            "--exclude",
+            _EXCLUDE_FLAG,
             ".venv/",
-            "--exclude",
+            _EXCLUDE_FLAG,
             ".devenv/",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "node_modules/",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "tests/",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "test/",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "test_*.py",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "*_test.py",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "conftest.py",
             ".",
         ],
         skip_if=_no_py,
     ),
-]
+)
 
-FULL_ONLY_CHECKS: list[Check] = [
+FULL_ONLY_CHECKS: tuple[Check, ...] = (
     Check(
         name="py:arch",
         command=["lint-imports", "--no-cache"],
@@ -93,14 +96,22 @@ FULL_ONLY_CHECKS: list[Check] = [
             ".",
             "--min-confidence",
             "80",
-            "--exclude",
+            _EXCLUDE_FLAG,
             EXCLUDE_DIRS_CSV,
         ],
         skip_if=_no_py,
     ),
     Check(
         name="py:security",
-        command=["bandit", "-r", ".", "-q", "-ll", "--exclude", EXCLUDE_DIRS_DOTSLASH],
+        command=[
+            "bandit",
+            "-r",
+            ".",
+            "-q",
+            "-ll",
+            _EXCLUDE_FLAG,
+            EXCLUDE_DIRS_DOTSLASH,
+        ],
         skip_if=_no_py,
     ),
     Check(
@@ -125,41 +136,41 @@ FULL_ONLY_CHECKS: list[Check] = [
             "--quiet",
             "--error",
             "--metrics=off",
-            "--exclude",
+            _EXCLUDE_FLAG,
             ".venv",
-            "--exclude",
+            _EXCLUDE_FLAG,
             ".devenv",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "node_modules",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "dist",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "build",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "tests",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "test",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "__tests__",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "*_test.py",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "test_*.py",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "*.test.*",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "*.spec.*",
-            "--exclude",
+            _EXCLUDE_FLAG,
             "conftest.py",
             ".",
         ],
         skip_if=_no_semgrep,
     ),
-]
+)
 
 FULL_CHECKS = FAST_CHECKS + FULL_ONLY_CHECKS
 
-STRICT_ONLY_CHECKS: list[Check] = [
+STRICT_ONLY_CHECKS: tuple[Check, ...] = (
     Check(
         name="py:lint-strict",
         command=[
@@ -171,10 +182,13 @@ STRICT_ONLY_CHECKS: list[Check] = [
         ],
         skip_if=_no_py,
     ),
-]
+)
 
 STRICT_CHECKS = FULL_CHECKS + STRICT_ONLY_CHECKS
 
-ALL_CHECKS_BY_NAME: dict[str, Check] = {
-    c.name.removeprefix("py:"): c for c in FULL_CHECKS + STRICT_ONLY_CHECKS
-}
+ALL_CHECKS_BY_NAME = MappingProxyType(
+    {
+        check.name.removeprefix("py:"): check
+        for check in FULL_CHECKS + STRICT_ONLY_CHECKS
+    }
+)

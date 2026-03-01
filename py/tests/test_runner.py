@@ -1,5 +1,4 @@
 from unittest.mock import patch, MagicMock
-import subprocess
 from piper_py.runner import Check, run_check, run_checks
 
 

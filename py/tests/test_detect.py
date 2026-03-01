@@ -1,4 +1,3 @@
-import os
 import tempfile
 from pathlib import Path
 
@@ -36,16 +35,25 @@ def test_has_config_section_found():
     with tempfile.TemporaryDirectory() as tmp:
         p = Path(tmp, "pyproject.toml")
         p.write_text("[tool.importlinter]\nroot = 'src'\n")
-        assert has_config_section("pyproject.toml", "[tool.importlinter]", root=tmp) is True
+        assert (
+            has_config_section("pyproject.toml", "[tool.importlinter]", root=tmp)
+            is True
+        )
 
 
 def test_has_config_section_missing():
     with tempfile.TemporaryDirectory() as tmp:
         p = Path(tmp, "pyproject.toml")
         p.write_text("[project]\nname = 'foo'\n")
-        assert has_config_section("pyproject.toml", "[tool.importlinter]", root=tmp) is False
+        assert (
+            has_config_section("pyproject.toml", "[tool.importlinter]", root=tmp)
+            is False
+        )
 
 
 def test_has_config_section_no_file():
     with tempfile.TemporaryDirectory() as tmp:
-        assert has_config_section("pyproject.toml", "[tool.importlinter]", root=tmp) is False
+        assert (
+            has_config_section("pyproject.toml", "[tool.importlinter]", root=tmp)
+            is False
+        )
