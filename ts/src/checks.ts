@@ -49,3 +49,7 @@ export const FULL_ONLY_CHECKS: Check[] = [
 ];
 
 export const FULL_CHECKS: Check[] = [...FAST_CHECKS, ...FULL_ONLY_CHECKS];
+
+export const ALL_CHECKS_BY_NAME: Record<string, Check> = Object.fromEntries(
+  FULL_CHECKS.map((c) => [c.name.startsWith("ts:") ? c.name.slice(3) : c.name, c])
+);

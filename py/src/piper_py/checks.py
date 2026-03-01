@@ -95,3 +95,7 @@ FULL_ONLY_CHECKS: list[Check] = [
 ]
 
 FULL_CHECKS = FAST_CHECKS + FULL_ONLY_CHECKS
+
+ALL_CHECKS_BY_NAME: dict[str, Check] = {
+    c.name.removeprefix("py:"): c for c in FULL_CHECKS
+}

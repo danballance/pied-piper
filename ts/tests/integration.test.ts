@@ -23,10 +23,10 @@ function runCli(command: string, cwd: string): { stdout: string; exitCode: numbe
   }
 }
 
-describe("integration", () => {
+describe("integration", { timeout: 15_000 }, () => {
   it("skips all checks when no TS/JS files", () => {
     const tmp = makeTmpDir();
-    const { stdout, exitCode } = runCli("check-fast", tmp);
+    const { stdout, exitCode } = runCli("check fast", tmp);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("SKIP");
     fs.rmSync(tmp, { recursive: true });

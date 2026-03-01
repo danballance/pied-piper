@@ -9,8 +9,10 @@ def test_check_fast_on_clean_python_file():
     with tempfile.TemporaryDirectory() as tmp:
         Path(tmp, "hello.py").write_text('def greet() -> str:\n    return "hello"\n')
         result = subprocess.run(
-            [sys.executable, "-m", "piper_py.cli", "check-fast"],
-            capture_output=True, text=True, cwd=tmp,
+            [sys.executable, "-m", "piper_py.cli", "check", "fast"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
         )
         assert "py:format" in result.stdout
         assert "py:lint" in result.stdout
@@ -19,8 +21,10 @@ def test_check_fast_on_clean_python_file():
 def test_check_fast_skips_when_no_py_files():
     with tempfile.TemporaryDirectory() as tmp:
         result = subprocess.run(
-            [sys.executable, "-m", "piper_py.cli", "check-fast"],
-            capture_output=True, text=True, cwd=tmp,
+            [sys.executable, "-m", "piper_py.cli", "check", "fast"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
         )
         assert result.returncode == 0
         assert "SKIP" in result.stdout
@@ -30,8 +34,10 @@ def test_check_fast_catches_lint_error():
     with tempfile.TemporaryDirectory() as tmp:
         Path(tmp, "bad.py").write_text("import os\n")  # unused import
         result = subprocess.run(
-            [sys.executable, "-m", "piper_py.cli", "check-fast"],
-            capture_output=True, text=True, cwd=tmp,
+            [sys.executable, "-m", "piper_py.cli", "check", "fast"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
         )
         assert result.returncode == 2
         assert "FAIL" in result.stdout
@@ -39,10 +45,14 @@ def test_check_fast_catches_lint_error():
 
 def test_complexity_check_passes_simple_function():
     with tempfile.TemporaryDirectory() as tmp:
-        Path(tmp, "simple.py").write_text('def greet(name: str) -> str:\n    return f"hello {name}"\n')
+        Path(tmp, "simple.py").write_text(
+            'def greet(name: str) -> str:\n    return f"hello {name}"\n'
+        )
         result = subprocess.run(
-            [sys.executable, "-m", "piper_py.cli", "check-full"],
-            capture_output=True, text=True, cwd=tmp,
+            [sys.executable, "-m", "piper_py.cli", "check", "full"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
         )
         assert "OK   py:complexity" in result.stdout
 
@@ -65,8 +75,36 @@ def test_complexity_check_fails_complex_function():
     with tempfile.TemporaryDirectory() as tmp:
         Path(tmp, "complex.py").write_text(complex_code)
         result = subprocess.run(
-            [sys.executable, "-m", "piper_py.cli", "check-full"],
-            capture_output=True, text=True, cwd=tmp,
+            [sys.executable, "-m", "piper_py.cli", "check", "full"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
         )
         assert result.returncode == 2
         assert "FAIL py:complexity" in result.stdout
+
+
+def test_check_individual_format_on_clean_file():
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, "hello.py").write_text('def greet() -> str:\n    return "hello"\n')
+        result = subprocess.run(
+            [sys.executable, "-m", "piper_py.cli", "check", "format"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
+        )
+        assert result.returncode == 0
+        assert "OK   py:format" in result.stdout
+
+
+def test_check_individual_lint_catches_error():
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, "bad.py").write_text("import os\n")
+        result = subprocess.run(
+            [sys.executable, "-m", "piper_py.cli", "check", "lint"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
+        )
+        assert result.returncode == 2
+        assert "FAIL py:lint" in result.stdout

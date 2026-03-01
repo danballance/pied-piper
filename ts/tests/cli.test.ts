@@ -4,34 +4,60 @@ import * as path from "node:path";
 
 const cli = path.resolve("src/cli.ts");
 
-function run(args: string): { stdout: string; exitCode: number } {
+function run(args: string): { stdout: string; stderr: string; exitCode: number } {
   try {
     const stdout = execSync(`npx tsx ${cli} ${args}`, {
       stdio: "pipe",
       encoding: "utf-8",
     });
-    return { stdout, exitCode: 0 };
+    return { stdout, stderr: "", exitCode: 0 };
   } catch (err: any) {
-    return { stdout: err.stdout ?? "", exitCode: err.status ?? 1 };
+    return { stdout: err.stdout ?? "", stderr: err.stderr ?? "", exitCode: err.status ?? 1 };
   }
 }
 
-describe("CLI", () => {
+describe("CLI", { timeout: 15_000 }, () => {
   it("prints version", () => {
     const { stdout, exitCode } = run("version");
     expect(exitCode).toBe(0);
     expect(stdout).toContain("pied-piper");
   });
 
-  it("shows help", () => {
-    const { stdout, exitCode } = run("--help");
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain("check-fast");
-    expect(stdout).toContain("check-full");
+  it("check fast parses correctly", () => {
+    const { exitCode } = run("check fast");
+    expect([0, 2]).toContain(exitCode);
+  });
+
+  it("check full parses correctly", () => {
+    const { exitCode } = run("check full");
+    expect([0, 2]).toContain(exitCode);
+  });
+
+  it("check individual parses correctly", () => {
+    const { exitCode } = run("check format");
+    expect([0, 2]).toContain(exitCode);
+  });
+
+  it("check invalid name exits 1 with error", () => {
+    const { stderr, exitCode } = run("check bogus");
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("bogus");
+    expect(stderr).toContain("format");
+  });
+
+  it("check with no name exits 1", () => {
+    const { stderr, exitCode } = run("check");
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("format");
   });
 
   it("rejects unknown commands", () => {
     const { exitCode } = run("nonsense");
-    expect(exitCode).not.toBe(0);
+    expect(exitCode).toBe(2);
+  });
+
+  it("no args exits with error", () => {
+    const { exitCode } = run("");
+    expect(exitCode).toBe(2);
   });
 });

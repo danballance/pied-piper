@@ -10,10 +10,10 @@ No install required. Run directly with `uvx` or `npx`:
 
 ```bash
 # Python checks
-uvx pied-piper check-fast
+uvx pied-piper check fast
 
 # TypeScript checks
-npx pied-piper check-fast
+npx pied-piper check fast
 ```
 
 ## Hook Configuration
@@ -27,16 +27,16 @@ Add to `.claude/settings.json` (or `.claude/settings.local.json`). Include only 
       {
         "matcher": "Edit|Write",
         "hooks": [
-          { "type": "command", "command": "uvx pied-piper check-fast" },
-          { "type": "command", "command": "npx pied-piper check-fast" }
+          { "type": "command", "command": "uvx pied-piper check fast" },
+          { "type": "command", "command": "npx pied-piper check fast" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "uvx pied-piper check-full" },
-          { "type": "command", "command": "npx pied-piper check-full" }
+          { "type": "command", "command": "uvx pied-piper check full" },
+          { "type": "command", "command": "npx pied-piper check full" }
         ]
       }
     ]
@@ -47,17 +47,18 @@ Add to `.claude/settings.json` (or `.claude/settings.local.json`). Include only 
 How it works:
 
 1. Claude edits a file via `Edit` or `Write`
-2. `PostToolUse` runs `check-fast` (format + lint + type) -- fast feedback in seconds
+2. `PostToolUse` runs `check fast` (format + lint + type) -- fast feedback in seconds
 3. If checks fail (exit 2), Claude sees the error output and self-corrects
-4. When Claude is about to stop, the `Stop` hook runs `check-full` (the complete suite)
+4. When Claude is about to stop, the `Stop` hook runs `check full` (the complete suite)
 5. If the full suite fails, Claude continues fixing instead of stopping
 
 ## Commands
 
 | Command | What it runs | When to use |
 |---------|-------------|-------------|
-| `check-fast` | format + lint + type check | Every edit (PostToolUse) |
-| `check-full` | fast + arch + deadcode + security/complexity | Before agent stops (Stop hook) |
+| `check fast` | format + lint + type check | Every edit (PostToolUse) |
+| `check full` | fast + arch + deadcode + security/complexity | Before agent stops (Stop hook) |
+| `check <name>` | A single check (e.g. `format`, `type`, `security`) | Re-run one failing check |
 | `fix` | Auto-fix formatting and lint | Manual cleanup |
 | `version` | Print version | Troubleshooting |
 
