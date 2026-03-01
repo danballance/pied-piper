@@ -19,8 +19,9 @@ def _run_suite(name: str) -> None:
     suite = suites.get(name)
     if suite is not None:
         exit_code, outputs = run_checks(suite)
+        stream = sys.stderr if exit_code else sys.stdout
         for line in outputs:
-            sys.stdout.write(f"{line}\n")
+            stream.write(f"{line}\n")
         sys.exit(exit_code)
 
 
@@ -32,7 +33,8 @@ def _run_single(name: str) -> None:
         sys.stderr.write(f"available checks: fast, full, strict, {available}\n")
         sys.exit(1)
     passed, message = run_check(check)
-    sys.stdout.write(f"{message}\n")
+    stream = sys.stdout if passed else sys.stderr
+    stream.write(f"{message}\n")
     sys.exit(0 if passed else 2)
 
 

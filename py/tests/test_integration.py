@@ -40,7 +40,7 @@ def test_check_fast_catches_lint_error():
             cwd=tmp,
         )
         assert result.returncode == 2
-        assert "FAIL" in result.stdout
+        assert "FAIL" in result.stderr
 
 
 def test_complexity_check_passes_simple_function():
@@ -81,7 +81,7 @@ def test_complexity_check_fails_complex_function():
             cwd=tmp,
         )
         assert result.returncode == 2
-        assert "FAIL py:complexity" in result.stdout
+        assert "FAIL py:complexity" in result.stderr
 
 
 def test_check_individual_format_on_clean_file():
@@ -107,7 +107,7 @@ def test_check_individual_lint_catches_error():
             cwd=tmp,
         )
         assert result.returncode == 2
-        assert "FAIL py:lint" in result.stdout
+        assert "FAIL py:lint" in result.stderr
 
 
 def test_check_lint_strict_on_clean_file():
