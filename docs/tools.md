@@ -138,6 +138,23 @@ forbidden_modules = ["myproject.db"]
 
 ---
 
+### wemake-python-styleguide (strict lint)
+
+**What it does:** The strictest Python linter. A flake8 plugin that enforces opinionated coding standards, catches complexity issues, and ensures "one obvious way to do it." Designed to complement ruff — runs only WPS-specific rules that ruff doesn't cover.
+
+**Check:** `py:lint-strict` (strict) — only runs in `check strict` or individually via `check lint-strict`
+
+**Config:** All via CLI flags (`--select=WPS`). No config file needed in the target project.
+
+**Tuning:**
+- Suppress per-line: `# noqa: WPS123`
+- To ignore specific rules project-wide, create a `setup.cfg` with `[flake8]` section and `extend-ignore` list
+- See full rule list at https://wemake-python-styleguide.readthedocs.io/en/latest/pages/usage/violations/
+
+**Docs:** https://github.com/wemake-services/wemake-python-styleguide
+
+---
+
 ## TypeScript Tools
 
 ### biome (format + lint)

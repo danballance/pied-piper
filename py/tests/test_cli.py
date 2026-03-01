@@ -23,6 +23,20 @@ def test_check_individual(capsys):
     assert exc_info.value.code in (0, 2)
 
 
+def test_check_strict(capsys):
+    """'check strict' runs strict checks and exits cleanly."""
+    with pytest.raises(SystemExit) as exc_info:
+        main(["check", "strict"])
+    assert exc_info.value.code in (0, 2)
+
+
+def test_check_lint_strict_individual(capsys):
+    """'check lint-strict' runs the individual WPS check."""
+    with pytest.raises(SystemExit) as exc_info:
+        main(["check", "lint-strict"])
+    assert exc_info.value.code in (0, 2)
+
+
 def test_check_invalid_name(capsys):
     """'check bogus' prints error with available names and exits 1."""
     with pytest.raises(SystemExit) as exc_info:
@@ -31,6 +45,7 @@ def test_check_invalid_name(capsys):
     captured = capsys.readouterr()
     assert "bogus" in captured.err
     assert "format" in captured.err
+    assert "strict" in captured.err
 
 
 def test_check_no_name(capsys):

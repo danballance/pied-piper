@@ -4,7 +4,7 @@ import sys
 import subprocess
 
 from piper_py import __version__
-from piper_py.checks import ALL_CHECKS_BY_NAME, FAST_CHECKS, FULL_CHECKS
+from piper_py.checks import ALL_CHECKS_BY_NAME, FAST_CHECKS, FULL_CHECKS, STRICT_CHECKS
 from piper_py.runner import run_check, run_checks
 
 
@@ -27,11 +27,17 @@ def _check(name: str) -> None:
             print(output)
         sys.exit(exit_code)
 
+    if name == "strict":
+        exit_code, outputs = run_checks(STRICT_CHECKS)
+        for output in outputs:
+            print(output)
+        sys.exit(exit_code)
+
     check = ALL_CHECKS_BY_NAME.get(name)
     if check is None:
         available = ", ".join(sorted(ALL_CHECKS_BY_NAME.keys()))
         print(f"error: unknown check '{name}'", file=sys.stderr)
-        print(f"available checks: fast, full, {available}", file=sys.stderr)
+        print(f"available checks: fast, full, strict, {available}", file=sys.stderr)
         sys.exit(1)
 
     passed, output = run_check(check)
@@ -60,7 +66,7 @@ def main(argv: list[str] | None = None) -> None:
         if len(args) < 2:
             available = ", ".join(sorted(ALL_CHECKS_BY_NAME.keys()))
             print("error: missing check name", file=sys.stderr)
-            print(f"available checks: fast, full, {available}", file=sys.stderr)
+            print(f"available checks: fast, full, strict, {available}", file=sys.stderr)
             sys.exit(1)
         _check(args[1])
         return

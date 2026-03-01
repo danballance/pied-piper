@@ -108,3 +108,31 @@ def test_check_individual_lint_catches_error():
         )
         assert result.returncode == 2
         assert "FAIL py:lint" in result.stdout
+
+
+def test_check_lint_strict_on_clean_file():
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, "hello.py").write_text('def greet() -> str:\n    return "hello"\n')
+        result = subprocess.run(
+            [sys.executable, "-m", "piper_py.cli", "check", "lint-strict"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
+        )
+        # WPS may or may not flag this simple file — just verify output format
+        assert "py:lint-strict" in result.stdout
+
+
+def test_check_strict_runs_full_plus_lint_strict():
+    """check strict includes both full checks and lint-strict."""
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, "hello.py").write_text('def greet() -> str:\n    return "hello"\n')
+        result = subprocess.run(
+            [sys.executable, "-m", "piper_py.cli", "check", "strict"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
+        )
+        # Should include checks from full AND the lint-strict check
+        assert "py:format" in result.stdout
+        assert "py:lint-strict" in result.stdout

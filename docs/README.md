@@ -58,6 +58,7 @@ How it works:
 |---------|-------------|-------------|
 | `check fast` | format + lint + type check | Every edit (PostToolUse) |
 | `check full` | fast + arch + deadcode + security/complexity | Before agent stops (Stop hook) |
+| `check strict` | full + strict lint (wemake-python-styleguide) | Opt-in stricter checks |
 | `check <name>` | A single check (e.g. `format`, `type`, `security`) | Re-run one failing check |
 | `fix` | Auto-fix formatting and lint | Manual cleanup |
 | `version` | Print version | Troubleshooting |
@@ -76,6 +77,7 @@ Run via: `uvx pied-piper <command>`
 | `py:security` | bandit | full | No `.py` files |
 | `py:complexity` | complexipy | full | No `.py` files |
 | `py:semgrep` | semgrep | full | No `semgrep` on PATH or no `.semgrep.yml` with rules |
+| `py:lint-strict` | wemake-python-styleguide (via flake8) | strict | No `.py` files |
 
 `fix` runs: `ruff format .` then `ruff check --fix .`
 
