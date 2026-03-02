@@ -15,7 +15,7 @@ class Check:
     skip_if: Callable[[], bool]
 
 
-def _clean_env() -> dict[str, str]:
+def clean_env() -> dict[str, str]:
     env = os.environ.copy()
     env.pop("VIRTUAL_ENV", None)
     tool_bin = str(Path(sys.prefix) / "bin")
@@ -28,7 +28,7 @@ def run_check(check: Check) -> tuple[bool, str]:
         return True, f"SKIP {check.name} (not applicable)"
 
     completed = subprocess.run(
-        check.command, capture_output=True, text=True, env=_clean_env()
+        check.command, capture_output=True, text=True, env=clean_env()
     )
 
     if completed.returncode == 0:

@@ -5,12 +5,16 @@ import sys
 from importlib.metadata import version
 
 from piper_py.checks import ALL_CHECKS_BY_NAME, FAST_CHECKS, FULL_CHECKS, STRICT_CHECKS
-from piper_py.runner import run_check, run_checks
+from piper_py.runner import clean_env, run_check, run_checks
+
+
+def _format() -> None:
+    subprocess.run(["ruff", "format", "."], check=False, env=clean_env())
+    sys.stdout.write("OK   format\n")
 
 
 def _fix() -> None:
-    subprocess.run(["ruff", "format", "."], check=False)
-    subprocess.run(["ruff", "check", "--fix", "."], check=False)
+    subprocess.run(["ruff", "check", "--fix", "."], check=False, env=clean_env())
     sys.stdout.write("OK   fix\n")
 
 
@@ -51,13 +55,14 @@ def _handle_check_command(args: list[str]) -> None:
 def _print_usage_error(command: str | None = None) -> None:
     if command is not None:
         sys.stderr.write(f"error: unknown command '{command}'\n")
-    sys.stderr.write("usage: pied-piper {check,fix,version} ...\n")
+    sys.stderr.write("usage: pied-piper {check,fix,format,version} ...\n")
 
 
 def _dispatch(args: list[str]) -> None:
     command = args[0]
     actions = {
         "version": lambda: sys.stdout.write(f"pied-piper {version('pied-piper')}\n"),
+        "format": _format,
         "fix": _fix,
         "check": lambda: _handle_check_command(args),
     }
