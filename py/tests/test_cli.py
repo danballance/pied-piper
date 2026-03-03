@@ -60,7 +60,7 @@ def test_check_no_name(capsys):
 def test_version(capsys):
     main(["version"])
     captured = capsys.readouterr()
-    assert "pied-piper" in captured.out
+    assert "piper-py" in captured.out
 
 
 def test_fix(capsys):

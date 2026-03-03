@@ -20,7 +20,7 @@ describe("CLI", { timeout: 15_000 }, () => {
   it("prints version", () => {
     const { stdout, exitCode } = run("version");
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("pied-piper");
+    expect(stdout).toContain("piper-ts");
   });
 
   it("check fast parses correctly", () => {

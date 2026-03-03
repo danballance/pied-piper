@@ -10,10 +10,10 @@ No install required. Run directly with `uvx` or `npx`:
 
 ```bash
 # Python checks
-uvx pied-piper check fast
+uvx piper-py check fast
 
 # TypeScript checks
-npx pied-piper check fast
+npx piper-ts check fast
 ```
 
 ## Hook Configuration
@@ -27,16 +27,16 @@ Add to `.claude/settings.json` (or `.claude/settings.local.json`). Include only 
       {
         "matcher": "Edit|Write",
         "hooks": [
-          { "type": "command", "command": "uvx pied-piper check fast" },
-          { "type": "command", "command": "npx pied-piper check fast" }
+          { "type": "command", "command": "uvx piper-py check fast" },
+          { "type": "command", "command": "npx piper-ts check fast" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "uvx pied-piper check full" },
-          { "type": "command", "command": "npx pied-piper check full" }
+          { "type": "command", "command": "uvx piper-py check full" },
+          { "type": "command", "command": "npx piper-ts check full" }
         ]
       }
     ]
@@ -65,7 +65,7 @@ How it works:
 
 ## Python Checks
 
-Run via: `uvx pied-piper <command>`
+Run via: `uvx piper-py <command>`
 
 | Check | Tool | Tier | Skip when |
 |-------|------|------|-----------|
@@ -83,7 +83,7 @@ Run via: `uvx pied-piper <command>`
 
 ## TypeScript Checks
 
-Run via: `npx pied-piper <command>`
+Run via: `npx piper-ts <command>`
 
 | Check | Tool | Tier | Skip when |
 |-------|------|------|-----------|
@@ -117,14 +117,12 @@ Exit codes:
 
 ## Permanent Install
 
-For a persistent install with the shorter `piper` alias:
-
 ```bash
 # Python
-uv tool install pied-piper    # provides: pied-piper, piper
+uv tool install piper-py    # provides: piper-py
 
 # TypeScript
-npm install -g pied-piper      # provides: pied-piper, piper
+npm install -g piper-ts      # provides: piper-ts
 ```
 
 ---

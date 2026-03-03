@@ -55,13 +55,13 @@ def _handle_check_command(args: list[str]) -> None:
 def _print_usage_error(command: str | None = None) -> None:
     if command is not None:
         sys.stderr.write(f"error: unknown command '{command}'\n")
-    sys.stderr.write("usage: pied-piper {check,fix,format,version} ...\n")
+    sys.stderr.write("usage: piper-py {check,fix,format,version} ...\n")
 
 
 def _dispatch(args: list[str]) -> None:
     command = args[0]
     actions = {
-        "version": lambda: sys.stdout.write(f"pied-piper {version('pied-piper')}\n"),
+        "version": lambda: sys.stdout.write(f"piper-py {version('piper-py')}\n"),
         "format": _format,
         "fix": _fix,
         "check": lambda: _handle_check_command(args),

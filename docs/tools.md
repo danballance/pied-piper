@@ -2,7 +2,7 @@
 
 Detailed reference for each guardrail tool. See [README.md](README.md) for commands and usage.
 
-> These tools are packaged as dependencies of the `pied-piper` CLI tools. You do not need to install them individually — they are available automatically when you run `uvx pied-piper` or `npx pied-piper`.
+> These tools are packaged as dependencies of the `piper-py` and `piper-ts` CLI tools. You do not need to install them individually — they are available automatically when you run `uvx piper-py` or `npx piper-ts`.
 
 ---
 

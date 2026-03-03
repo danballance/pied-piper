@@ -1,5 +1,5 @@
 [project]
-name = "pied-piper"
+name = "piper-py"
 version = "0.1.0"
 description = "Python code guardrails for agentic coding workflows"
 requires-python = ">=3.12"
@@ -15,8 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pied-piper = "piper_py.cli:main"
-piper = "piper_py.cli:main"
+piper-py = "piper_py.cli:main"
 
 [build-system]
 requires = ["hatchling"]

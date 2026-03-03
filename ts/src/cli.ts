@@ -50,14 +50,14 @@ function main(): void {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error("usage: pied-piper {check,fix,version} ...");
+    console.error("usage: piper-ts {check,fix,version} ...");
     process.exit(2);
   }
 
   const command = args[0];
 
   if (command === "version") {
-    console.log(`pied-piper ${VERSION}`);
+    console.log(`piper-ts ${VERSION}`);
     return;
   }
 
@@ -78,7 +78,7 @@ function main(): void {
   }
 
   console.error(`error: unknown command '${command}'`);
-  console.error("usage: pied-piper {check,fix,version} ...");
+  console.error("usage: piper-ts {check,fix,version} ...");
   process.exit(2);
 }
 

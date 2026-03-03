@@ -4,8 +4,8 @@ Code guardrails for agentic coding workflows. Runs formatting, linting, type che
 
 ```bash
 # Run directly -- no install needed
-uvx pied-piper check fast    # Python checks
-npx pied-piper check fast    # TypeScript checks
+uvx piper-py check fast    # Python checks
+npx piper-ts check fast    # TypeScript checks
 ```
 
 Two packages, one per language ecosystem. Add hooks for the languages you use.

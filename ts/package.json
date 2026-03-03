@@ -1,11 +1,10 @@
 {
-  "name": "pied-piper",
+  "name": "piper-ts",
   "version": "0.1.0",
   "description": "TypeScript code guardrails for agentic coding workflows",
   "type": "module",
   "bin": {
-    "pied-piper": "./dist/cli.js",
-    "piper": "./dist/cli.js"
+    "piper-ts": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
