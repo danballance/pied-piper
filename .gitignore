@@ -27,3 +27,5 @@ results/*
 ts/dist/
 
 py/.complexipy_cache/
+
+.complexipy_cache/

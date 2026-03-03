@@ -6,10 +6,8 @@ from types import MappingProxyType
 from piper_py.detect import has_config_section, has_files
 from piper_py.runner import Check
 
-EXCLUDE_DIRS_CSV = ".venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git,tests,test,__tests__"
-EXCLUDE_DIRS_DOTSLASH = (
-    "./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next,./tests,./test"
-)
+EXCLUDE_DIRS_CSV = ".venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git,tests,test,__tests__,.worktrees,.claude"
+EXCLUDE_DIRS_DOTSLASH = "./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next,./tests,./test,./.worktrees,./.claude"
 EXCLUDE_DIRS = (
     ".venv",
     ".devenv",
@@ -23,6 +21,8 @@ EXCLUDE_DIRS = (
     "tests",
     "test",
     "__tests__",
+    ".worktrees",
+    ".claude",
 )
 
 _EXCLUDE_FLAG = "--exclude"
@@ -68,15 +68,19 @@ FAST_CHECKS: tuple[Check, ...] = (
             _EXCLUDE_FLAG,
             "node_modules/",
             _EXCLUDE_FLAG,
-            "tests/",
+            ".worktrees/",
             _EXCLUDE_FLAG,
-            "test/",
+            ".claude/",
             _EXCLUDE_FLAG,
-            "test_*.py",
+            "**/tests/",
             _EXCLUDE_FLAG,
-            "*_test.py",
+            "**/test/",
             _EXCLUDE_FLAG,
-            "conftest.py",
+            "**/test_*.py",
+            _EXCLUDE_FLAG,
+            "**/*_test.py",
+            _EXCLUDE_FLAG,
+            "**/conftest.py",
             ".",
         ],
         skip_if=_no_py,
@@ -142,6 +146,10 @@ FULL_ONLY_CHECKS: tuple[Check, ...] = (
             ".devenv",
             _EXCLUDE_FLAG,
             "node_modules",
+            _EXCLUDE_FLAG,
+            ".worktrees",
+            _EXCLUDE_FLAG,
+            ".claude",
             _EXCLUDE_FLAG,
             "dist",
             _EXCLUDE_FLAG,
