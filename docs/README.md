@@ -60,7 +60,8 @@ How it works:
 | `check full` | fast + arch + deadcode + security/complexity | Before agent stops (Stop hook) |
 | `check strict` | full + strict lint (wemake-python-styleguide) | Opt-in stricter checks |
 | `check <name>` | A single check (e.g. `format`, `type`, `security`) | Re-run one failing check |
-| `fix` | Auto-fix formatting and lint | Manual cleanup |
+| `format` | Auto-fix formatting | Manual cleanup |
+| `fix` | Auto-fix lint issues | Manual cleanup |
 | `version` | Print version | Troubleshooting |
 
 ## Python Checks
@@ -79,7 +80,8 @@ Run via: `uvx piper-py <command>`
 | `py:semgrep` | semgrep | full | No `semgrep` on PATH or no `.semgrep.yml` with rules |
 | `py:lint-strict` | wemake-python-styleguide (via flake8) | strict | No `.py` files |
 
-`fix` runs: `ruff format .` then `ruff check --fix .`
+`format` runs: `ruff format .`
+`fix` runs: `ruff check --fix .`
 
 ## TypeScript Checks
 
@@ -95,7 +97,8 @@ Run via: `npx piper-ts <command>`
 | `ts:typecov` | type-coverage | full | No `.ts` files in `src/` |
 | `ts:astgrep` | ast-grep | full | No `sgconfig.yml` |
 
-`fix` runs: `biome format --write .` then `biome lint --write .`
+`format` runs: `biome format --write .`
+`fix` runs: `biome lint --write .`
 
 ## Output Format
 

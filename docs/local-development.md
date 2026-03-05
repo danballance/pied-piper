@@ -16,6 +16,7 @@ Both tools live at `py/` and `ts/` in the repo root.
 # From any project directory you want to check:
 uvx --python 3.12 --from <repo>/py piper-py check fast
 uvx --python 3.12 --from <repo>/py piper-py check full
+uvx --python 3.12 --from <repo>/py piper-py format
 uvx --python 3.12 --from <repo>/py piper-py fix
 ```
 
@@ -91,7 +92,8 @@ npm unlink -g piper-ts
 | `check fast` | Format + lint + type check |
 | `check full` | Full checks (architecture, dead code, type coverage, etc.) |
 | `check <name>` | Run a single check (e.g. `format`, `type`, `security`) |
-| `fix` | Auto-fix formatting and lint issues |
+| `format` | Auto-fix formatting |
+| `fix` | Auto-fix lint issues |
 | `version` | Print version |
 
 ---
