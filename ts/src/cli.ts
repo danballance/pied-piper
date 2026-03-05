@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 
-import { runCheck, runChecks } from "./runner.js";
+import { runCheck, runChecks, cleanEnv, getBiomeConfigArgs } from "./runner.js";
 import { ALL_CHECKS_BY_NAME, FAST_CHECKS, FULL_CHECKS } from "./checks.js";
 import { execSync } from "node:child_process";
 
 const VERSION = "0.1.0";
 
 function fix(): void {
+  const env = cleanEnv();
+  const configArgs = getBiomeConfigArgs();
   try {
-    execSync("biome format --write .", { stdio: "pipe" });
+    execSync(`biome format --write ${configArgs} .`.trim(), { stdio: "pipe", env });
   } catch {}
   try {
-    execSync("biome lint --write .", { stdio: "pipe" });
+    execSync(`biome lint --write ${configArgs} .`.trim(), { stdio: "pipe", env });
   } catch {}
   console.log("OK   fix");
 }

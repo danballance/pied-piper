@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { runCheck, runChecks, type Check } from "../src/runner.js";
+import { runCheck, runChecks, getBiomeConfigArgs, type Check } from "../src/runner.js";
 import * as child_process from "node:child_process";
+import * as detect from "../src/detect.js";
 
 vi.mock("node:child_process");
+vi.mock("../src/detect.js", { spy: true });
 
 describe("runCheck", () => {
   it("returns OK on success", () => {
@@ -105,5 +107,57 @@ describe("runChecks", () => {
     expect(exitCode).toBe(2);
     expect(outputs).toHaveLength(2);
     expect(outputs[1]).toContain("OK   b");
+  });
+});
+
+describe("getBiomeConfigArgs", () => {
+  it("returns --config-path when no local biome config", () => {
+    vi.mocked(detect.hasConfigFile).mockReturnValue(false);
+    const args = getBiomeConfigArgs();
+    expect(args).toMatch(/^--config-path=/);
+  });
+
+  it("returns empty string when biome.json exists", () => {
+    vi.mocked(detect.hasConfigFile).mockImplementation((f) => f === "biome.json");
+    const args = getBiomeConfigArgs();
+    expect(args).toBe("");
+  });
+
+  it("returns empty string when biome.jsonc exists", () => {
+    vi.mocked(detect.hasConfigFile).mockImplementation((f) => f === "biome.jsonc");
+    const args = getBiomeConfigArgs();
+    expect(args).toBe("");
+  });
+});
+
+describe("runCheck with function command", () => {
+  it("resolves function-type command", () => {
+    vi.mocked(child_process.execSync).mockReturnValue(Buffer.from(""));
+    const check: Check = {
+      name: "test:fn",
+      command: () => "biome format --config-path=/tmp .",
+      skipIf: () => false,
+    };
+    const [passed, output] = runCheck(check);
+    expect(passed).toBe(true);
+    expect(output).toBe("OK   test:fn");
+  });
+
+  it("shows resolved command in FAIL output", () => {
+    const err = new Error() as any;
+    err.stdout = Buffer.from("err");
+    err.stderr = Buffer.from("");
+    err.status = 1;
+    vi.mocked(child_process.execSync).mockImplementation(() => {
+      throw err;
+    });
+    const check: Check = {
+      name: "test:fn-fail",
+      command: () => "biome lint --config-path=/tmp .",
+      skipIf: () => false,
+    };
+    const [passed, output] = runCheck(check);
+    expect(passed).toBe(false);
+    expect(output).toContain("COMMAND biome lint --config-path=/tmp .");
   });
 });

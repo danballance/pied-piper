@@ -1,4 +1,4 @@
-import { type Check } from "./runner.js";
+import { type Check, getBiomeConfigArgs } from "./runner.js";
 import { hasFiles, hasConfigFile } from "./detect.js";
 
 const noTsJsFiles = (): boolean => !hasFiles([".ts", ".tsx", ".js", ".jsx"]);
@@ -7,15 +7,22 @@ const noTsSrc = (): boolean => !hasFiles([".ts"], "src");
 const noDepCruiserConfig = (): boolean => !hasConfigFile(".dependency-cruiser.js") || !hasConfigFile("src");
 const noSgConfig = (): boolean => !hasConfigFile("sgconfig.yml");
 
+function biomeCmd(subcommand: string): () => string {
+  return () => {
+    const configArgs = getBiomeConfigArgs();
+    return configArgs ? `biome ${subcommand} ${configArgs} .` : `biome ${subcommand} .`;
+  };
+}
+
 export const FAST_CHECKS: Check[] = [
   {
     name: "ts:format",
-    command: "biome format .",
+    command: biomeCmd("format"),
     skipIf: noTsJsFiles,
   },
   {
     name: "ts:lint",
-    command: "biome lint .",
+    command: biomeCmd("lint"),
     skipIf: noTsJsFiles,
   },
   {

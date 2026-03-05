@@ -12,7 +12,8 @@
     "test:watch": "vitest"
   },
   "files": [
-    "dist/"
+    "dist/",
+    "biome.json"
   ],
   "dependencies": {
     "@ast-grep/cli": "^0.41.0",
