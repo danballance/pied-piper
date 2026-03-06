@@ -100,6 +100,21 @@ Run via: `npx piper-ts <command>`
 `format` runs: `biome format --write .`
 `fix` runs: `biome lint --write .`
 
+### Per-project biome config
+
+piper-ts ships sensible biome defaults (space indentation, recommended lint rules). If your project has a `biome.json`, piper-ts deep-merges it on top of the defaults — your settings win for any overlap.
+
+```json
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+  "files": {
+    "includes": ["src/**", "!src/generated/**"]
+  }
+}
+```
+
+This scopes biome to `src/` and excludes generated files, while inheriting piper-ts's formatter and linter settings. See [tools.md](tools.md#biome-format--lint) for full details on merge behavior.
+
 ## Output Format
 
 Every check prints a single status line:

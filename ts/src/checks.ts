@@ -4,13 +4,16 @@ import { hasFiles, hasConfigFile } from "./detect.js";
 const noTsJsFiles = (): boolean => !hasFiles([".ts", ".tsx", ".js", ".jsx"]);
 const noTsFiles = (): boolean => !hasFiles([".ts"]);
 const noTsSrc = (): boolean => !hasFiles([".ts"], "src");
-const noDepCruiserConfig = (): boolean => !hasConfigFile(".dependency-cruiser.js") || !hasConfigFile("src");
+const noDepCruiserConfig = (): boolean =>
+  !hasConfigFile(".dependency-cruiser.js") || !hasConfigFile("src");
 const noSgConfig = (): boolean => !hasConfigFile("sgconfig.yml");
 
 function biomeCmd(subcommand: string): () => string {
   return () => {
     const configArgs = getBiomeConfigArgs();
-    return configArgs ? `biome ${subcommand} ${configArgs} .` : `biome ${subcommand} .`;
+    return configArgs
+      ? `biome ${subcommand} ${configArgs} .`
+      : `biome ${subcommand} .`;
   };
 }
 
@@ -35,7 +38,8 @@ export const FAST_CHECKS: Check[] = [
 export const FULL_ONLY_CHECKS: Check[] = [
   {
     name: "ts:arch",
-    command: 'depcruise src/ --config .dependency-cruiser.js --exclude "(test|tests|__tests__|\\.(test|spec)\\.)"',
+    command:
+      'depcruise src/ --config .dependency-cruiser.js --exclude "(test|tests|__tests__|\\.(test|spec)\\.)"',
     skipIf: noDepCruiserConfig,
   },
   {
@@ -45,7 +49,8 @@ export const FULL_ONLY_CHECKS: Check[] = [
   },
   {
     name: "ts:typecov",
-    command: 'type-coverage --at-least 80 --ignore-files "**/*.test.ts" --ignore-files "**/*.spec.ts" --ignore-files "**/tests/**" --ignore-files "**/test/**" --ignore-files "**/__tests__/**"',
+    command:
+      'type-coverage --at-least 80 --ignore-files "**/*.test.ts" --ignore-files "**/*.spec.ts" --ignore-files "**/tests/**" --ignore-files "**/test/**" --ignore-files "**/__tests__/**"',
     skipIf: noTsSrc,
   },
   {
@@ -58,5 +63,8 @@ export const FULL_ONLY_CHECKS: Check[] = [
 export const FULL_CHECKS: Check[] = [...FAST_CHECKS, ...FULL_ONLY_CHECKS];
 
 export const ALL_CHECKS_BY_NAME: Record<string, Check> = Object.fromEntries(
-  FULL_CHECKS.map((c) => [c.name.startsWith("ts:") ? c.name.slice(3) : c.name, c])
+  FULL_CHECKS.map((c) => [
+    c.name.startsWith("ts:") ? c.name.slice(3) : c.name,
+    c,
+  ]),
 );

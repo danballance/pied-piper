@@ -2,8 +2,18 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 const EXCLUDE_DIRS = new Set([
-  ".venv", ".devenv", ".direnv", "node_modules", "dist", "build",
-  ".next", "__pycache__", ".git", "tests", "test", "__tests__",
+  ".venv",
+  ".devenv",
+  ".direnv",
+  "node_modules",
+  "dist",
+  "build",
+  ".next",
+  "__pycache__",
+  ".git",
+  "tests",
+  "test",
+  "__tests__",
 ]);
 
 export function hasFiles(extensions: string[], root: string = "."): boolean {

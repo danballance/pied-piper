@@ -4,7 +4,11 @@ import * as path from "node:path";
 
 const cli = path.resolve("src/cli.ts");
 
-function run(args: string): { stdout: string; stderr: string; exitCode: number } {
+function run(args: string): {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+} {
   try {
     const stdout = execSync(`npx tsx ${cli} ${args}`, {
       stdio: "pipe",
@@ -12,7 +16,11 @@ function run(args: string): { stdout: string; stderr: string; exitCode: number }
     });
     return { stdout, stderr: "", exitCode: 0 };
   } catch (err: any) {
-    return { stdout: err.stdout ?? "", stderr: err.stderr ?? "", exitCode: err.status ?? 1 };
+    return {
+      stdout: err.stdout ?? "",
+      stderr: err.stderr ?? "",
+      exitCode: err.status ?? 1,
+    };
   }
 }
 
@@ -56,8 +64,15 @@ describe("CLI", { timeout: 15_000 }, () => {
     expect(exitCode).toBe(2);
   });
 
+  it("format command runs successfully", () => {
+    const { stdout, exitCode } = run("format");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("OK   format");
+  });
+
   it("no args exits with error", () => {
-    const { exitCode } = run("");
+    const { exitCode, stderr } = run("");
     expect(exitCode).toBe(2);
+    expect(stderr).toContain("format");
   });
 });

@@ -163,7 +163,53 @@ forbidden_modules = ["myproject.db"]
 
 **Checks:** `ts:format` (fast), `ts:lint` (fast)
 
-**Config:** `biome.json` — uses project config if present, biome defaults otherwise.
+**Config:** piper-ts ships a default `biome.json` with sensible defaults (space indentation, recommended lint rules, common directory exclusions). If your project has its own `biome.json` or `biome.jsonc`, piper-ts **deep-merges** your config on top of the defaults — your settings take precedence.
+
+**How config merging works:**
+
+1. **No local config** — piper-ts defaults apply as-is
+2. **Local config present** — piper-ts reads both configs and deep-merges them:
+   - **Objects** are recursively merged (your keys override, base keys preserved)
+   - **Arrays** are replaced entirely (your `files.includes` replaces the base's, not concatenated)
+   - `$schema` and `extends` are stripped from both before merging
+
+The merged config is written to a temp file and cleaned up on exit.
+
+**Default base config:**
+
+```json
+{
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["**", "!**/.venv/**", "!**/.devenv/**", "!**/.direnv/**",
+                  "!**/.claude/**", "!**/dist/**", "!**/build/**", "!**/.next/**"]
+  },
+  "formatter": { "indentStyle": "space", "indentWidth": 2 },
+  "linter": { "rules": { "recommended": true } }
+}
+```
+
+**Per-project override example:**
+
+```json
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+  "files": {
+    "includes": ["ui/**", "schema/**", "!ui/src/api/generated/**"]
+  },
+  "css": {
+    "parser": { "tailwindDirectives": true }
+  }
+}
+```
+
+This scopes biome to only `ui/` and `schema/` directories, excludes generated files, and enables Tailwind CSS syntax support — while inheriting the base formatter and linter settings.
+
+**Important notes on `files.includes`:**
+
+- Use `!` negation patterns to exclude files/directories (e.g., `!ui/src/api/generated/**`)
+- The deprecated `experimentalScannerIgnores` field does **not** work for format/lint exclusion — use negation patterns in `includes` instead
+- When you provide `files.includes`, it fully replaces the base's includes (no merging of arrays)
 
 **Docs:** https://biomejs.dev/
 

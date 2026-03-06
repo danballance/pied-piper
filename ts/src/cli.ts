@@ -6,14 +6,26 @@ import { execSync } from "node:child_process";
 
 const VERSION = "0.1.0";
 
+function format(): void {
+  const env = cleanEnv();
+  const configArgs = getBiomeConfigArgs();
+  try {
+    execSync(`biome format --write ${configArgs} .`.trim(), {
+      stdio: "pipe",
+      env,
+    });
+  } catch {}
+  console.log("OK   format");
+}
+
 function fix(): void {
   const env = cleanEnv();
   const configArgs = getBiomeConfigArgs();
   try {
-    execSync(`biome format --write ${configArgs} .`.trim(), { stdio: "pipe", env });
-  } catch {}
-  try {
-    execSync(`biome lint --write ${configArgs} .`.trim(), { stdio: "pipe", env });
+    execSync(`biome lint --write ${configArgs} .`.trim(), {
+      stdio: "pipe",
+      env,
+    });
   } catch {}
   console.log("OK   fix");
 }
@@ -52,7 +64,7 @@ function main(): void {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error("usage: piper-ts {check,fix,version} ...");
+    console.error("usage: piper-ts {check,fix,format,version} ...");
     process.exit(2);
   }
 
@@ -60,6 +72,11 @@ function main(): void {
 
   if (command === "version") {
     console.log(`piper-ts ${VERSION}`);
+    return;
+  }
+
+  if (command === "format") {
+    format();
     return;
   }
 
@@ -80,7 +97,7 @@ function main(): void {
   }
 
   console.error(`error: unknown command '${command}'`);
-  console.error("usage: piper-ts {check,fix,version} ...");
+  console.error("usage: piper-ts {check,fix,format,version} ...");
   process.exit(2);
 }
 
