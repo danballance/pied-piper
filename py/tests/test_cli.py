@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from piper_py.cli import main
@@ -84,3 +86,43 @@ def test_unknown_command(capsys):
     assert exc_info.value.code == 2
     captured = capsys.readouterr()
     assert captured.err
+
+
+def test_directory_flag_changes_cwd(capsys, tmp_path):
+    """--directory changes working directory before running command."""
+    original = os.getcwd()
+    try:
+        main(["--directory", str(tmp_path), "version"])
+        assert os.getcwd() == str(tmp_path)
+    finally:
+        os.chdir(original)
+    captured = capsys.readouterr()
+    assert "piper-py" in captured.out
+
+
+def test_directory_short_flag(capsys, tmp_path):
+    """-d is an alias for --directory."""
+    original = os.getcwd()
+    try:
+        main(["-d", str(tmp_path), "version"])
+        assert os.getcwd() == str(tmp_path)
+    finally:
+        os.chdir(original)
+    captured = capsys.readouterr()
+    assert "piper-py" in captured.out
+
+
+def test_directory_nonexistent(capsys):
+    """--directory with nonexistent path exits 1."""
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--directory", "/nonexistent/path/xyz", "version"])
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "does not exist" in captured.err
+
+
+def test_directory_no_value(capsys):
+    """--directory with no value exits 1."""
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--directory"])
+    assert exc_info.value.code == 1

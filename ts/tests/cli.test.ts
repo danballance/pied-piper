@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { execSync } from "node:child_process";
 import * as path from "node:path";
+import * as fs from "node:fs";
+import * as os from "node:os";
 
 const cli = path.resolve("src/cli.ts");
+
+function makeTmpDir(): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), "piper-test-"));
+}
 
 function run(args: string): {
   stdout: string;
@@ -74,5 +80,38 @@ describe("CLI", { timeout: 15_000 }, () => {
     const { exitCode, stderr } = run("");
     expect(exitCode).toBe(2);
     expect(stderr).toContain("format");
+  });
+
+  it("--directory flag runs in target directory", () => {
+    const tmp = makeTmpDir();
+    try {
+      const { stdout, exitCode } = run(`--directory ${tmp} version`);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("piper-ts");
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  it("-d flag is alias for --directory", () => {
+    const tmp = makeTmpDir();
+    try {
+      const { stdout, exitCode } = run(`-d ${tmp} version`);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("piper-ts");
+    } finally {
+      fs.rmSync(tmp, { recursive: true });
+    }
+  });
+
+  it("--directory with nonexistent path exits 1", () => {
+    const { exitCode, stderr } = run("--directory /nonexistent/xyz version");
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("does not exist");
+  });
+
+  it("--directory without value exits 1", () => {
+    const { exitCode } = run("--directory");
+    expect(exitCode).toBe(1);
   });
 });

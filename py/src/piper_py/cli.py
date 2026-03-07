@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from importlib.metadata import version
+from pathlib import Path
 
 from piper_py.checks import ALL_CHECKS_BY_NAME, FAST_CHECKS, FULL_CHECKS, STRICT_CHECKS
 from piper_py.runner import clean_env, run_check, run_checks
@@ -55,7 +57,7 @@ def _handle_check_command(args: list[str]) -> None:
 def _print_usage_error(command: str | None = None) -> None:
     if command is not None:
         sys.stderr.write(f"error: unknown command '{command}'\n")
-    sys.stderr.write("usage: piper-py {check,fix,format,version} ...\n")
+    sys.stderr.write("usage: piper-py [--directory <path>] {check,fix,format,version} ...\n")
 
 
 def _dispatch(args: list[str]) -> None:
@@ -73,8 +75,27 @@ def _dispatch(args: list[str]) -> None:
     action()
 
 
+def _extract_directory_flag(args: list[str]) -> list[str]:
+    """Extract --directory/-d flag, chdir if present, return remaining args."""
+    i = 0
+    while i < len(args):
+        if args[i] in ("--directory", "-d"):
+            if i + 1 >= len(args):
+                sys.stderr.write("error: --directory requires a path argument\n")
+                sys.exit(1)
+            target = Path(args[i + 1])
+            if not target.is_dir():
+                sys.stderr.write(f"error: directory does not exist: {target}\n")
+                sys.exit(1)
+            os.chdir(target)
+            return args[:i] + args[i + 2:]
+        i += 1
+    return args
+
+
 def main(argv: list[str] | None = None) -> None:
     args = sys.argv[1:] if argv is None else argv
+    args = _extract_directory_flag(args)
     if not args:
         _print_usage_error()
         sys.exit(2)

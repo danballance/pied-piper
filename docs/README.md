@@ -52,6 +52,36 @@ How it works:
 4. When Claude is about to stop, the `Stop` hook runs `check full` (the complete suite)
 5. If the full suite fails, Claude continues fixing instead of stopping
 
+## Monorepo Usage
+
+Use `--directory` / `-d` to target a subdirectory. Each subdirectory should have its own config files (pyproject.toml, biome.json, tsconfig.json, etc.):
+
+```bash
+# Check Python code in api/
+uvx piper-py --directory ./api check fast
+
+# Check TypeScript code in ui/
+npx piper-ts -d ./ui check fast
+```
+
+Hook configuration for monorepos:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "uvx piper-py -d ./api check fast" },
+          { "type": "command", "command": "npx piper-ts -d ./ui check fast" }
+        ]
+      }
+    ]
+  }
+}
+```
+
 ## Commands
 
 | Command | What it runs | When to use |

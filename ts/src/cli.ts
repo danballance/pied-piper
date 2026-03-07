@@ -3,6 +3,7 @@
 import { runCheck, runChecks, cleanEnv, getBiomeConfigArgs } from "./runner.js";
 import { ALL_CHECKS_BY_NAME, FAST_CHECKS, FULL_CHECKS } from "./checks.js";
 import { execSync } from "node:child_process";
+import * as fs from "node:fs";
 
 const VERSION = "0.1.0";
 
@@ -60,11 +61,32 @@ function check(name: string): void {
   process.exit(passed ? 0 : 2);
 }
 
+function extractDirectoryFlag(args: string[]): string[] {
+  const idx = args.findIndex((a) => a === "--directory" || a === "-d");
+  if (idx === -1) return args;
+
+  if (idx + 1 >= args.length) {
+    console.error("error: --directory requires a path argument");
+    process.exit(1);
+  }
+
+  const target = args[idx + 1];
+  if (!fs.existsSync(target) || !fs.statSync(target).isDirectory()) {
+    console.error(`error: directory does not exist: ${target}`);
+    process.exit(1);
+  }
+
+  process.chdir(target);
+  return [...args.slice(0, idx), ...args.slice(idx + 2)];
+}
+
 function main(): void {
-  const args = process.argv.slice(2);
+  const args = extractDirectoryFlag(process.argv.slice(2));
 
   if (args.length === 0) {
-    console.error("usage: piper-ts {check,fix,format,version} ...");
+    console.error(
+      "usage: piper-ts [--directory <path>] {check,fix,format,version} ...",
+    );
     process.exit(2);
   }
 
