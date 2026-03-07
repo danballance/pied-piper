@@ -10,25 +10,63 @@ const VERSION = "0.1.0";
 function format(): void {
   const env = cleanEnv();
   const configArgs = getBiomeConfigArgs();
+  const writeCmd = `biome format --write ${configArgs} .`.trim();
+  const checkCmd = `biome format ${configArgs} .`.trim();
   try {
-    execSync(`biome format --write ${configArgs} .`.trim(), {
-      stdio: "pipe",
-      env,
-    });
-  } catch {}
-  console.log("OK   format");
+    execSync(writeCmd, { stdio: "pipe", env });
+  } catch (err: unknown) {
+    const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number };
+    const stdout = e.stdout?.toString() ?? "";
+    const stderr = e.stderr?.toString() ?? "";
+    console.error(
+      `FAIL format\nCOMMAND ${writeCmd}\n${(stdout + stderr).trimEnd()}`,
+    );
+    process.exit(e.status ?? 1);
+  }
+  // Verify formatting was actually applied — biome --write silently skips
+  // files it cannot write to (e.g. permission denied) and still exits 0.
+  try {
+    execSync(checkCmd, { stdio: "pipe", env });
+    console.log("OK   format");
+  } catch (err: unknown) {
+    const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number };
+    const stdout = e.stdout?.toString() ?? "";
+    const stderr = e.stderr?.toString() ?? "";
+    console.error(
+      `FAIL format (files remain unformatted after --write)\nCOMMAND ${checkCmd}\n${(stdout + stderr).trimEnd()}`,
+    );
+    process.exit(e.status ?? 1);
+  }
 }
 
 function fix(): void {
   const env = cleanEnv();
   const configArgs = getBiomeConfigArgs();
+  const writeCmd = `biome lint --write ${configArgs} .`.trim();
+  const checkCmd = `biome lint ${configArgs} .`.trim();
   try {
-    execSync(`biome lint --write ${configArgs} .`.trim(), {
-      stdio: "pipe",
-      env,
-    });
-  } catch {}
-  console.log("OK   fix");
+    execSync(writeCmd, { stdio: "pipe", env });
+  } catch (err: unknown) {
+    const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number };
+    const stdout = e.stdout?.toString() ?? "";
+    const stderr = e.stderr?.toString() ?? "";
+    console.error(
+      `FAIL fix\nCOMMAND ${writeCmd}\n${(stdout + stderr).trimEnd()}`,
+    );
+    process.exit(e.status ?? 1);
+  }
+  try {
+    execSync(checkCmd, { stdio: "pipe", env });
+    console.log("OK   fix");
+  } catch (err: unknown) {
+    const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number };
+    const stdout = e.stdout?.toString() ?? "";
+    const stderr = e.stderr?.toString() ?? "";
+    console.error(
+      `FAIL fix (lint issues remain after --write)\nCOMMAND ${checkCmd}\n${(stdout + stderr).trimEnd()}`,
+    );
+    process.exit(e.status ?? 1);
+  }
 }
 
 function check(name: string): void {
