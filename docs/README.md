@@ -1,20 +1,100 @@
 # Pied Piper
 
-A guardrails orchestrator for agentic coding workflows (Claude Code). Two CLI tools -- one Python, one TypeScript -- that run code quality checks and provide structured feedback via Claude Code hooks.
+A guardrails orchestrator for agentic coding workflows (Claude Code). Two CLI tools -- one Python, one TypeScript -- that run code quality checks and tests, providing structured feedback via Claude Code hooks.
 
 Each tool bundles its own language ecosystem's checks. Add hooks only for the languages you use.
 
 ## Quick Start
 
-No install required. Run directly with `uvx` or `npx`:
+```bash
+# 1. Generate config
+uvx piper-py init        # creates .piper/piper.toml with Python defaults
+npx piper-ts init        # creates .piper/piper.toml with TypeScript defaults
+
+# 2. Run checks
+uvx piper-py check fast
+npx piper-ts check fast
+
+# 3. Run tests
+uvx piper-py test unit
+npx piper-ts test unit
+```
+
+## Configuration
+
+All checks, tests, and fix commands are defined in `.piper/piper.toml`. Run `init` to generate a starter config with inline comments, then edit to match your project.
 
 ```bash
-# Python checks
-uvx piper-py check fast
-
-# TypeScript checks
-npx piper-ts check fast
+uvx piper-py init    # generates .piper/piper.toml with Python defaults
+npx piper-ts init    # generates .piper/piper.toml with TypeScript defaults
 ```
+
+Every entry is a literal shell command, run as-is. Remove lines to disable checks, change command strings to swap tools, add new lines to add checks.
+
+### Config format
+
+The config has four top-level sections: `[check]`, `[test]`, `[format]`, and `[fix]`.
+
+**check and test** use tiered sub-tables:
+
+```toml
+[check]
+tiers = { fast = ["fast"], full = ["fast", "full"] }
+
+[check.fast]
+format = "ruff format --check ."
+lint = "ruff check ."
+
+[check.full]
+arch = "lint-imports --no-cache"
+```
+
+The `tiers` line defines what each tier includes. `fast = ["fast"]` means `check fast` runs only `[check.fast]`. `full = ["fast", "full"]` means `check full` runs both `[check.fast]` and `[check.full]` — tiers are cumulative.
+
+Individual commands can be run by name: `check format` finds `format` in `[check.fast]` and runs just that one command.
+
+Test tiers work identically. Note that `e2e = ["e2e"]` maps only to `[test.e2e]` — it is standalone, not cumulative with the other tiers:
+
+```toml
+[test]
+tiers = { unit = ["unit"], full = ["unit", "full"], e2e = ["e2e"] }
+```
+
+**format and fix** are flat — no tiers, all commands run together:
+
+```toml
+[format]
+py = "ruff format ."
+
+[fix]
+lint = "ruff check --fix ."
+```
+
+### Customization
+
+- **Change a tool**: replace the command string (e.g., `type = "mypy ."`)
+- **Disable a check**: delete the line
+- **Add a check**: add a new `name = "command"` line in the appropriate sub-table
+- **Change tier composition**: edit the `tiers` mapping (e.g., add a new tier name)
+
+The generated config includes standard `--exclude` flags for common directories (`.venv`, `node_modules`, `dist`, etc.). Adjust these to match your project layout.
+
+## Commands
+
+| Command | What it runs | When to use |
+|---------|-------------|-------------|
+| `init` | Generate `.piper/piper.toml` | Project setup (once) |
+| `check fast` | format + lint + type check | Every edit (PostToolUse hook) |
+| `check full` | fast + arch + deadcode + security/complexity | Before agent stops (Stop hook) |
+| `check strict` | full + strict lint | Opt-in stricter checks |
+| `check <name>` | A single check (e.g. `format`, `type`, `security`) | Re-run one failing check |
+| `test unit` | Unit tests | Quick feedback |
+| `test full` | unit + integration/contract tests | Before agent stops |
+| `test e2e` | End-to-end tests | Full validation |
+| `test <name>` | A single test (e.g. `unit`, `contract`) | Re-run one failing test |
+| `format` | Auto-fix formatting | Manual cleanup |
+| `fix` | Auto-fix lint issues | Manual cleanup |
+| `version` | Print version | Troubleshooting |
 
 ## Hook Configuration
 
@@ -52,15 +132,19 @@ How it works:
 4. When Claude is about to stop, the `Stop` hook runs `check full` (the complete suite)
 5. If the full suite fails, Claude continues fixing instead of stopping
 
+**Prerequisites:** Run `piper-py init` / `piper-ts init` first to generate `.piper/piper.toml`.
+
 ## Monorepo Usage
 
-Use `--directory` / `-d` to target a subdirectory. Each subdirectory should have its own config files (pyproject.toml, biome.json, tsconfig.json, etc.):
+Use `--directory` / `-d` to target a subdirectory. Each subdirectory should have its own `.piper/piper.toml`:
 
 ```bash
-# Check Python code in api/
-uvx piper-py --directory ./api check fast
+# Initialize each subdirectory
+uvx piper-py -d ./api init
+npx piper-ts -d ./ui init
 
-# Check TypeScript code in ui/
+# Check
+uvx piper-py -d ./api check fast
 npx piper-ts -d ./ui check fast
 ```
 
@@ -82,80 +166,16 @@ Hook configuration for monorepos:
 }
 ```
 
-## Commands
-
-| Command | What it runs | When to use |
-|---------|-------------|-------------|
-| `check fast` | format + lint + type check | Every edit (PostToolUse) |
-| `check full` | fast + arch + deadcode + security/complexity | Before agent stops (Stop hook) |
-| `check strict` | full + strict lint (wemake-python-styleguide) | Opt-in stricter checks |
-| `check <name>` | A single check (e.g. `format`, `type`, `security`) | Re-run one failing check |
-| `format` | Auto-fix formatting | Manual cleanup |
-| `fix` | Auto-fix lint issues | Manual cleanup |
-| `version` | Print version | Troubleshooting |
-
-## Python Checks
-
-Run via: `uvx piper-py <command>`
-
-| Check | Tool | Tier | Skip when |
-|-------|------|------|-----------|
-| `py:format` | ruff format | fast | No `.py` files |
-| `py:lint` | ruff check | fast | No `.py` files |
-| `py:type` | ty | fast | No `.py` files |
-| `py:arch` | import-linter | full | No `[tool.importlinter]` in pyproject.toml |
-| `py:deadcode` | vulture | full | No `.py` files |
-| `py:security` | bandit | full | No `.py` files |
-| `py:complexity` | complexipy | full | No `.py` files |
-| `py:semgrep` | semgrep | full | No `semgrep` on PATH or no `.semgrep.yml` with rules |
-| `py:lint-strict` | wemake-python-styleguide (via flake8) | strict | No `.py` files |
-
-`format` runs: `ruff format .`
-`fix` runs: `ruff check --fix .`
-
-## TypeScript Checks
-
-Run via: `npx piper-ts <command>`
-
-| Check | Tool | Tier | Skip when |
-|-------|------|------|-----------|
-| `ts:format` | biome format | fast | No `.ts`/`.js` files |
-| `ts:lint` | biome lint | fast | No `.ts`/`.js` files |
-| `ts:type` | tsc | fast | No `.ts` files |
-| `ts:arch` | dependency-cruiser | full | No `.dependency-cruiser.js` |
-| `ts:deadcode` | knip | full | No `.ts` files in `src/` |
-| `ts:typecov` | type-coverage | full | No `.ts` files in `src/` |
-| `ts:astgrep` | ast-grep | full | No `sgconfig.yml` |
-
-`format` runs: `biome format --write .`
-`fix` runs: `biome lint --write .`
-
-### Per-project biome config
-
-piper-ts ships sensible biome defaults (space indentation, recommended lint rules). If your project has a `biome.json`, piper-ts deep-merges it on top of the defaults — your settings win for any overlap.
-
-```json
-{
-  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
-  "files": {
-    "includes": ["src/**", "!src/generated/**"]
-  }
-}
-```
-
-This scopes biome to `src/` and excludes generated files, while inheriting piper-ts's formatter and linter settings. See [tools.md](tools.md#biome-format--lint) for full details on merge behavior.
-
 ## Output Format
 
 Every check prints a single status line:
 
 ```
-OK   py:format
-OK   py:lint
-FAIL py:type
-COMMAND ty check --exclude .venv/ ...
+OK   format
+OK   lint
+FAIL type
+COMMAND ty check
   src/main.py:14:5 - Type 'str' not assignable to 'int'
-SKIP ts:format (not applicable)
 ```
 
 Exit codes:

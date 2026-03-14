@@ -89,12 +89,19 @@ npm unlink -g piper-ts
 
 | Command | Description |
 |---------|-------------|
+| `init` | Generate `.piper/piper.toml` config |
 | `check fast` | Format + lint + type check |
 | `check full` | Full checks (architecture, dead code, type coverage, etc.) |
 | `check <name>` | Run a single check (e.g. `format`, `type`, `security`) |
+| `test unit` | Unit tests |
+| `test full` | Unit + integration/contract tests |
+| `test e2e` | End-to-end tests |
+| `test <name>` | Run a single test (e.g. `unit`, `contract`) |
 | `format` | Auto-fix formatting |
 | `fix` | Auto-fix lint issues |
 | `version` | Print version |
+
+> **Note:** Run `piper-py init` / `piper-ts init` first to generate `.piper/piper.toml` before using any other command.
 
 ---
 

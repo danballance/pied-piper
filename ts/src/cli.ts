@@ -1,102 +1,42 @@
 #!/usr/bin/env node
 
-import { runCheck, runChecks, cleanEnv, getBiomeConfigArgs } from "./runner.js";
-import { ALL_CHECKS_BY_NAME, FAST_CHECKS, FULL_CHECKS } from "./checks.js";
-import { execSync } from "node:child_process";
 import * as fs from "node:fs";
+import { loadConfig, resolveCommands } from "./config.js";
+import { init } from "./init.js";
+import { runCommands } from "./runner.js";
 
 const VERSION = "0.1.0";
+const USAGE =
+  "usage: piper-ts [--directory <path>] {init,check,test,format,fix,version} ...";
 
-function format(): void {
-  const env = cleanEnv();
-  const configArgs = getBiomeConfigArgs();
-  const writeCmd = `biome format --write ${configArgs} .`.trim();
-  const checkCmd = `biome format ${configArgs} .`.trim();
+function runSection(section: string, name?: string): void {
+  let config: Record<string, any>;
   try {
-    execSync(writeCmd, { stdio: "pipe", env });
-  } catch (err: unknown) {
-    const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number };
-    const stdout = e.stdout?.toString() ?? "";
-    const stderr = e.stderr?.toString() ?? "";
-    console.error(
-      `FAIL format\nCOMMAND ${writeCmd}\n${(stdout + stderr).trimEnd()}`,
-    );
-    process.exit(e.status ?? 1);
-  }
-  // Verify formatting was actually applied — biome --write silently skips
-  // files it cannot write to (e.g. permission denied) and still exits 0.
-  try {
-    execSync(checkCmd, { stdio: "pipe", env });
-    console.log("OK   format");
-  } catch (err: unknown) {
-    const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number };
-    const stdout = e.stdout?.toString() ?? "";
-    const stderr = e.stderr?.toString() ?? "";
-    console.error(
-      `FAIL format (files remain unformatted after --write)\nCOMMAND ${checkCmd}\n${(stdout + stderr).trimEnd()}`,
-    );
-    process.exit(e.status ?? 1);
-  }
-}
-
-function fix(): void {
-  const env = cleanEnv();
-  const configArgs = getBiomeConfigArgs();
-  const writeCmd = `biome lint --write ${configArgs} .`.trim();
-  const checkCmd = `biome lint ${configArgs} .`.trim();
-  try {
-    execSync(writeCmd, { stdio: "pipe", env });
-  } catch (err: unknown) {
-    const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number };
-    const stdout = e.stdout?.toString() ?? "";
-    const stderr = e.stderr?.toString() ?? "";
-    console.error(
-      `FAIL fix\nCOMMAND ${writeCmd}\n${(stdout + stderr).trimEnd()}`,
-    );
-    process.exit(e.status ?? 1);
-  }
-  try {
-    execSync(checkCmd, { stdio: "pipe", env });
-    console.log("OK   fix");
-  } catch (err: unknown) {
-    const e = err as { stdout?: Buffer; stderr?: Buffer; status?: number };
-    const stdout = e.stdout?.toString() ?? "";
-    const stderr = e.stderr?.toString() ?? "";
-    console.error(
-      `FAIL fix (lint issues remain after --write)\nCOMMAND ${checkCmd}\n${(stdout + stderr).trimEnd()}`,
-    );
-    process.exit(e.status ?? 1);
-  }
-}
-
-function check(name: string): void {
-  if (name === "fast") {
-    const [exitCode, outputs] = runChecks(FAST_CHECKS);
-    for (const output of outputs) {
-      console.log(output);
-    }
-    process.exit(exitCode);
-  }
-
-  if (name === "full") {
-    const [exitCode, outputs] = runChecks(FULL_CHECKS);
-    for (const output of outputs) {
-      console.log(output);
-    }
-    process.exit(exitCode);
-  }
-
-  const c = ALL_CHECKS_BY_NAME[name];
-  if (c === undefined) {
-    const available = Object.keys(ALL_CHECKS_BY_NAME).sort().join(", ");
-    console.error(`error: unknown check '${name}'`);
-    console.error(`available checks: fast, full, ${available}`);
+    config = loadConfig();
+  } catch (e: unknown) {
+    console.error(`error: ${(e as Error).message}`);
     process.exit(1);
   }
 
-  const [passed, output] = runCheck(c);
-  console.log(output);
-  process.exit(passed ? 0 : 2);
+  let commands: [string, string][];
+  try {
+    commands = resolveCommands(config, section, name);
+  } catch (e: unknown) {
+    console.error(`error: ${(e as Error).message}`);
+    process.exit(1);
+  }
+
+  if (commands.length === 0) {
+    console.error(`error: no commands configured for '${section}'`);
+    process.exit(1);
+  }
+
+  const [exitCode, outputs] = runCommands(commands);
+  const stream = exitCode ? process.stderr : process.stdout;
+  for (const line of outputs) {
+    stream.write(line + "\n");
+  }
+  process.exit(exitCode);
 }
 
 function extractDirectoryFlag(args: string[]): string[] {
@@ -122,9 +62,7 @@ function main(): void {
   const args = extractDirectoryFlag(process.argv.slice(2));
 
   if (args.length === 0) {
-    console.error(
-      "usage: piper-ts [--directory <path>] {check,fix,format,version} ...",
-    );
+    console.error(USAGE);
     process.exit(2);
   }
 
@@ -135,29 +73,33 @@ function main(): void {
     return;
   }
 
-  if (command === "format") {
-    format();
-    return;
-  }
-
-  if (command === "fix") {
-    fix();
-    return;
-  }
-
-  if (command === "check") {
-    if (args.length < 2) {
-      const available = Object.keys(ALL_CHECKS_BY_NAME).sort().join(", ");
-      console.error("error: missing check name");
-      console.error(`available checks: fast, full, ${available}`);
+  if (command === "init") {
+    try {
+      init();
+      console.log("Created .piper/piper.toml");
+    } catch (e: unknown) {
+      console.error(`error: ${(e as Error).message}`);
       process.exit(1);
     }
-    check(args[1]);
+    return;
+  }
+
+  if (command === "check" || command === "test") {
+    if (args.length < 2) {
+      console.error(`error: missing ${command} name`);
+      process.exit(1);
+    }
+    runSection(command, args[1]);
+    return;
+  }
+
+  if (command === "format" || command === "fix") {
+    runSection(command);
     return;
   }
 
   console.error(`error: unknown command '${command}'`);
-  console.error("usage: piper-ts {check,fix,format,version} ...");
+  console.error(USAGE);
   process.exit(2);
 }
 

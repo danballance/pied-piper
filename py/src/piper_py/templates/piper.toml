@@ -1,0 +1,55 @@
+# Pied Piper — Python config
+# Each entry is a shell command run as-is. Edit, remove, or add commands freely.
+#
+# Tiers define which groups run for each command level.
+# Example: "check full" looks up full = ["fast", "full"] and runs all commands
+# from [check.fast] and [check.full] combined.
+
+[check]
+tiers = { fast = ["fast"], full = ["fast", "full"], strict = ["fast", "full", "strict"] }
+
+# Fast checks — run on every edit (seconds)
+[check.fast]
+format = "ruff format --check ."
+lint = "ruff check ."
+type = "ty check"
+
+# Full checks — run before agent stops
+# Commands include --exclude flags for standard directories (venvs, node_modules,
+# build outputs, test dirs). Adjust these to match your project layout.
+[check.full]
+arch = "lint-imports --no-cache"
+deadcode = "vulture . --min-confidence 80 --exclude .venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git,tests,test,__tests__,.worktrees,.claude"
+security = "bandit -r . -q -ll --exclude ./.venv,./.devenv,./.direnv,./node_modules,./dist,./build,./.next,./tests,./test,./.worktrees,./.claude"
+complexity = "complexipy . --max-complexity-allowed 15 --quiet --exclude .venv --exclude .devenv --exclude node_modules --exclude dist --exclude build --exclude .git --exclude tests --exclude test --exclude __tests__ --exclude .worktrees --exclude .claude"
+semgrep = "semgrep scan --config .semgrep.yml --quiet --error --metrics=off --exclude .venv --exclude .devenv --exclude node_modules --exclude .worktrees --exclude .claude --exclude dist --exclude build --exclude tests --exclude test --exclude __tests__ ."
+
+# Strict checks — opt-in stricter analysis
+[check.strict]
+lint-strict = "flake8 . --select=WPS --extend-exclude .venv,.devenv,.direnv,node_modules,dist,build,.next,__pycache__,.git,tests,test,__tests__,.worktrees,.claude"
+
+# Test tiers work the same way as check tiers.
+# "test unit" runs [test.unit]; "test full" runs [test.unit] + [test.full].
+# "test e2e" runs ONLY [test.e2e] (standalone — not cumulative).
+[test]
+tiers = { unit = ["unit"], full = ["unit", "full"], e2e = ["e2e"] }
+
+# Unit tests — quick feedback
+[test.unit]
+unit = "uv run pytest -x"
+
+# Integration / contract tests
+[test.full]
+contract = "uv run pytest -m schemathesis"
+
+# End-to-end tests — requires running services
+[test.e2e]
+e2e = "uv run playwright test"
+
+# Format and fix have no tiers — all commands run together.
+# "piper-py format" runs every command in [format].
+[format]
+py = "ruff format ."
+
+[fix]
+lint = "ruff check --fix ."

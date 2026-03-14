@@ -3,16 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from pathlib import Path
-
-
-@dataclass
-class Check:
-    name: str
-    command: list[str]
-    skip_if: Callable[[], bool]
 
 
 def clean_env() -> dict[str, str]:
@@ -23,30 +14,22 @@ def clean_env() -> dict[str, str]:
     return env
 
 
-def run_check(check: Check) -> tuple[bool, str]:
-    if check.skip_if():
-        return True, f"SKIP {check.name} (not applicable)"
-
+def run_command(name: str, command: str) -> tuple[bool, str]:
     completed = subprocess.run(
-        check.command, capture_output=True, text=True, env=clean_env()
+        command, shell=True, capture_output=True, text=True, env=clean_env()
     )
-
     if completed.returncode == 0:
-        return True, f"OK   {check.name}"
-
+        return True, f"OK   {name}"
     output = (completed.stdout + completed.stderr).rstrip()
-    cmd_str = " ".join(check.command)
-    return False, f"FAIL {check.name}\nCOMMAND {cmd_str}\n{output}"
+    return False, f"FAIL {name}\nCOMMAND {command}\n{output}"
 
 
-def run_checks(checks: Sequence[Check]) -> tuple[int, list[str]]:
+def run_commands(commands: list[tuple[str, str]]) -> tuple[int, list[str]]:
     any_failed = False
     outputs: list[str] = []
-
-    for check in checks:
-        passed, output = run_check(check)
+    for name, command in commands:
+        passed, output = run_command(name, command)
         outputs.append(output)
         if not passed:
             any_failed = True
-
     return 2 if any_failed else 0, outputs

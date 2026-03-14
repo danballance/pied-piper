@@ -1,0 +1,47 @@
+# Pied Piper — TypeScript config
+# Each entry is a shell command run as-is. Edit, remove, or add commands freely.
+#
+# Tiers define which groups run for each command level.
+# Example: "check full" looks up full = ["fast", "full"] and runs all commands
+# from [check.fast] and [check.full] combined.
+
+[check]
+tiers = { fast = ["fast"], full = ["fast", "full"] }
+
+# Fast checks — run on every edit (seconds)
+[check.fast]
+format = "biome format ."
+lint = "biome check ."
+type = "tsc --noEmit"
+
+# Full checks — run before agent stops
+[check.full]
+arch = "depcruise src/ --config .dependency-cruiser.js"
+deadcode = "knip --exclude files"
+typecov = "type-coverage --at-least 80"
+astgrep = "ast-grep scan --config sgconfig.yml"
+
+# Test tiers work the same way as check tiers.
+# "test unit" runs [test.unit]; "test full" runs [test.unit] + [test.full].
+# "test e2e" runs ONLY [test.e2e] (standalone — not cumulative).
+[test]
+tiers = { unit = ["unit"], full = ["unit", "full"], e2e = ["e2e"] }
+
+# Unit tests — quick feedback
+[test.unit]
+unit = "npx vitest run"
+
+# Integration / contract tests — add your commands here
+[test.full]
+
+# End-to-end tests — requires running services
+[test.e2e]
+e2e = "npx playwright test"
+
+# Format and fix have no tiers — all commands run together.
+# "piper-ts format" runs every command in [format].
+[format]
+ts = "biome format --write ."
+
+[fix]
+lint = "biome check --fix ."

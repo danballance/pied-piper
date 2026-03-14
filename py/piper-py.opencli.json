@@ -1,0 +1,104 @@
+{
+  "$schema": "https://opencli.org/draft.json",
+  "opencli": "0.1",
+  "info": {
+    "title": "piper-py",
+    "version": "0.1.0",
+    "description": "Python code guardrails for agentic coding workflows"
+  },
+  "options": [
+    {
+      "name": "--directory",
+      "aliases": ["-d"],
+      "description": "Change to directory before running",
+      "recursive": true,
+      "arguments": [
+        { "name": "PATH", "required": true }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "name": "init",
+      "description": "Generate .piper/piper.toml with default configuration"
+    },
+    {
+      "name": "check",
+      "description": "Run code quality checks",
+      "arguments": [
+        {
+          "name": "CHECK_NAME",
+          "required": true,
+          "description": "Check suite or individual check name",
+          "acceptedValues": [
+            "fast", "full", "strict",
+            "format", "lint", "type", "arch",
+            "deadcode", "security", "complexity",
+            "semgrep", "lint-strict"
+          ]
+        }
+      ],
+      "exitCodes": [
+        { "code": 0, "description": "All checks passed" },
+        { "code": 1, "description": "Invalid or missing check name" },
+        { "code": 2, "description": "One or more checks failed" }
+      ],
+      "examples": [
+        "piper-py check fast",
+        "piper-py check full",
+        "piper-py check format"
+      ]
+    },
+    {
+      "name": "test",
+      "description": "Run tests",
+      "arguments": [
+        {
+          "name": "TEST_NAME",
+          "required": true,
+          "description": "Test tier or individual test name",
+          "acceptedValues": [
+            "unit", "full", "e2e",
+            "contract"
+          ]
+        }
+      ],
+      "exitCodes": [
+        { "code": 0, "description": "All tests passed" },
+        { "code": 1, "description": "Invalid or missing test name, or missing config" },
+        { "code": 2, "description": "One or more tests failed" }
+      ],
+      "examples": [
+        "piper-py test unit",
+        "piper-py test full",
+        "piper-py test e2e"
+      ]
+    },
+    {
+      "name": "format",
+      "description": "Format code using ruff"
+    },
+    {
+      "name": "fix",
+      "description": "Automatically fix code issues using ruff"
+    },
+    {
+      "name": "version",
+      "description": "Display piper-py version"
+    }
+  ],
+  "exitCodes": [
+    { "code": 0, "description": "Success" },
+    { "code": 1, "description": "Usage error (bad flag or argument)" },
+    { "code": 2, "description": "Command failed or unknown command" }
+  ],
+  "examples": [
+    "piper-py init",
+    "piper-py check fast",
+    "piper-py test unit",
+    "piper-py --directory ./my-project check full",
+    "piper-py format",
+    "piper-py fix",
+    "piper-py version"
+  ]
+}

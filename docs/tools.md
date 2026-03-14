@@ -12,7 +12,7 @@ Detailed reference for each guardrail tool. See [README.md](README.md) for comma
 
 **What it does:** Extremely fast Python linter and formatter, written in Rust. Replaces Black, Flake8, isort, and many Flake8 plugins with a single tool.
 
-**Checks:** `py:format` (fast), `py:lint` (fast)
+**Checks:** `format` (fast), `lint` (fast)
 
 **Config:** `pyproject.toml`
 
@@ -42,7 +42,7 @@ select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ",
 
 **What it does:** Extremely fast Rust-based Python type checker by Astral (same team as ruff). 10-60x faster than mypy/Pyright without caching. Currently in beta.
 
-**Check:** `py:type` (fast)
+**Check:** `type` (fast)
 
 **Config:** Can be configured in `pyproject.toml` under `[tool.ty]` (no custom config added yet — using defaults).
 
@@ -58,7 +58,7 @@ select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "DTZ",
 
 **What it does:** Enforces architectural boundaries by defining contracts that restrict which modules can import from which. Prevents the codebase from becoming spaghetti over time.
 
-**Check:** `py:arch` (full) — skips if no `[tool.importlinter]` config in `pyproject.toml`
+**Check:** `arch` (full) — remove from `.piper/piper.toml` if not needed
 
 **Config:** `pyproject.toml` — add a `[tool.importlinter]` section when your project has enough modules to warrant architectural boundaries. Example:
 
@@ -86,7 +86,7 @@ forbidden_modules = ["myproject.db"]
 
 **What it does:** Finds unused Python code — unused functions, classes, variables, imports, and unreachable code via AST analysis. Each finding has a confidence score.
 
-**Check:** `py:deadcode` (full)
+**Check:** `deadcode` (full)
 
 **Config:** `--min-confidence 80`
 
@@ -102,7 +102,7 @@ forbidden_modules = ["myproject.db"]
 
 **What it does:** Python security linter (SAST). Checks for common security issues: hardcoded passwords, use of `eval()`, SQL injection patterns, insecure hash functions, weak cryptography, etc. Has 68 built-in checks.
 
-**Check:** `py:security` (full)
+**Check:** `security` (full)
 
 **Config:** `-r . -q -ll`
 - `-r` — recursive scan
@@ -122,7 +122,7 @@ forbidden_modules = ["myproject.db"]
 
 **What it does:** Enforces cognitive complexity thresholds. Measures how hard code is for a human to understand — penalizes nesting depth and flow-breaking constructs (break, continue, early return, recursion). Written in Rust for speed.
 
-**Check:** `py:complexity` (full)
+**Check:** `complexity` (full)
 
 **Config:** `--max-complexity-allowed 15`
 - Functions exceeding a cognitive complexity score of 15 fail the check
@@ -142,7 +142,7 @@ forbidden_modules = ["myproject.db"]
 
 **What it does:** The strictest Python linter. A flake8 plugin that enforces opinionated coding standards, catches complexity issues, and ensures "one obvious way to do it." Designed to complement ruff — runs only WPS-specific rules that ruff doesn't cover.
 
-**Check:** `py:lint-strict` (strict) — only runs in `check strict` or individually via `check lint-strict`
+**Check:** `lint-strict` (strict) — only runs in `check strict` or individually via `check lint-strict`
 
 **Config:** All via CLI flags (`--select=WPS`). No config file needed in the target project.
 
@@ -161,55 +161,9 @@ forbidden_modules = ["myproject.db"]
 
 **What it does:** Fast TypeScript/JavaScript linter and formatter, written in Rust. Replacement for ESLint + Prettier with significantly better performance.
 
-**Checks:** `ts:format` (fast), `ts:lint` (fast)
+**Checks:** `format` (fast), `lint` (fast)
 
-**Config:** piper-ts ships a default `biome.json` with sensible defaults (space indentation, recommended lint rules, common directory exclusions). If your project has its own `biome.json` or `biome.jsonc`, piper-ts **deep-merges** your config on top of the defaults — your settings take precedence.
-
-**How config merging works:**
-
-1. **No local config** — piper-ts defaults apply as-is
-2. **Local config present** — piper-ts reads both configs and deep-merges them:
-   - **Objects** are recursively merged (your keys override, base keys preserved)
-   - **Arrays** are replaced entirely (your `files.includes` replaces the base's, not concatenated)
-   - `$schema` and `extends` are stripped from both before merging
-
-The merged config is written to a temp file and cleaned up on exit.
-
-**Default base config:**
-
-```json
-{
-  "files": {
-    "ignoreUnknown": true,
-    "includes": ["**", "!**/.venv/**", "!**/.devenv/**", "!**/.direnv/**",
-                  "!**/.claude/**", "!**/dist/**", "!**/build/**", "!**/.next/**"]
-  },
-  "formatter": { "indentStyle": "space", "indentWidth": 2 },
-  "linter": { "rules": { "recommended": true } }
-}
-```
-
-**Per-project override example:**
-
-```json
-{
-  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
-  "files": {
-    "includes": ["ui/**", "schema/**", "!ui/src/api/generated/**"]
-  },
-  "css": {
-    "parser": { "tailwindDirectives": true }
-  }
-}
-```
-
-This scopes biome to only `ui/` and `schema/` directories, excludes generated files, and enables Tailwind CSS syntax support — while inheriting the base formatter and linter settings.
-
-**Important notes on `files.includes`:**
-
-- Use `!` negation patterns to exclude files/directories (e.g., `!ui/src/api/generated/**`)
-- The deprecated `experimentalScannerIgnores` field does **not** work for format/lint exclusion — use negation patterns in `includes` instead
-- When you provide `files.includes`, it fully replaces the base's includes (no merging of arrays)
+**Config:** Configure in your project's `biome.json` or `.piper/` directory.
 
 **Docs:** https://biomejs.dev/
 
@@ -219,7 +173,7 @@ This scopes biome to only `ui/` and `schema/` directories, excludes generated fi
 
 **What it does:** TypeScript's built-in type checker. Runs with `--noEmit` to check types without producing output files.
 
-**Check:** `ts:type` (fast)
+**Check:** `type` (fast)
 
 **Config:** `tsconfig.json` — uses project config if present.
 
@@ -231,7 +185,7 @@ This scopes biome to only `ui/` and `schema/` directories, excludes generated fi
 
 **What it does:** Validates and visualizes JavaScript/TypeScript dependency graphs. Enforces rules like "no circular dependencies", "feature modules can't cross-import".
 
-**Check:** `ts:arch` (full) — skips if no `.dependency-cruiser.js` config or no `src/` directory
+**Check:** `arch` (full) — remove from `.piper/piper.toml` if not needed
 
 **Setup:** Run `npx depcruise --init` to generate initial config.
 
@@ -243,7 +197,7 @@ This scopes biome to only `ui/` and `schema/` directories, excludes generated fi
 
 **What it does:** Finds unused files, unused exports, unused and unlisted dependencies, and duplicate dependencies in TypeScript/JavaScript projects.
 
-**Check:** `ts:deadcode` (full) — skips if no `.ts` files in `src/`
+**Check:** `deadcode` (full) — remove from `.piper/piper.toml` if not needed
 
 **Config:** Can use `knip.json` or `package.json` (defaults are good).
 
@@ -255,7 +209,7 @@ This scopes biome to only `ui/` and `schema/` directories, excludes generated fi
 
 **What it does:** Measures what percentage of your TypeScript code has explicit or inferred type coverage. Enforces a minimum threshold to prevent `any` from spreading.
 
-**Check:** `ts:typecov` (full) — skips if no `.ts` files in `src/`
+**Check:** `typecov` (full) — remove from `.piper/piper.toml` if not needed
 
 **Config:** `--at-least 80` requires 80% type coverage. Increase as codebase matures.
 
@@ -269,7 +223,7 @@ This scopes biome to only `ui/` and `schema/` directories, excludes generated fi
 
 **What it does:** Structural code analysis tool that matches code patterns. Write rules that look like the code they match. Works across Python, TypeScript, JavaScript, and many other languages.
 
-**Check:** `py:semgrep` (full, in Python tool) — skips if `semgrep` is not on PATH or no `.semgrep.yml`
+**Check:** `semgrep` (full) — remove from `.piper/piper.toml` if not needed
 
 **Install separately:** `pip install semgrep` or `uv tool install semgrep` (not bundled due to dependency conflicts)
 
@@ -287,7 +241,7 @@ This scopes biome to only `ui/` and `schema/` directories, excludes generated fi
 
 **What it does:** Rust-based structural search/lint tool built on tree-sitter. Good for interactive codemods and structural searches.
 
-**Check:** `ts:astgrep` (full, in TypeScript tool) — skips if no `sgconfig.yml`
+**Check:** `astgrep` (full) — remove from `.piper/piper.toml` if not needed
 
 **Config:** `sgconfig.yml` — points to a `rules/` directory for custom rules.
 

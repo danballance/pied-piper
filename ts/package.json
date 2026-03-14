@@ -7,19 +7,19 @@
     "piper-ts": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/templates dist/templates",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "files": [
-    "dist/",
-    "biome.json"
+    "dist/"
   ],
   "dependencies": {
     "@ast-grep/cli": "^0.41.0",
     "@biomejs/biome": "^2.4.4",
     "dependency-cruiser": "^17.3.8",
     "knip": "^5.85.0",
+    "smol-toml": "^1.6.0",
     "type-coverage": "^2.29.7",
     "typescript": "^5.9.3"
   },

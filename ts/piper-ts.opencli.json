@@ -1,0 +1,102 @@
+{
+  "$schema": "https://opencli.org/draft.json",
+  "opencli": "0.1",
+  "info": {
+    "title": "piper-ts",
+    "version": "0.1.0",
+    "description": "TypeScript code guardrails for agentic coding workflows"
+  },
+  "options": [
+    {
+      "name": "--directory",
+      "aliases": ["-d"],
+      "description": "Change to directory before running",
+      "recursive": true,
+      "arguments": [
+        { "name": "PATH", "required": true }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "name": "init",
+      "description": "Generate .piper/piper.toml with default configuration"
+    },
+    {
+      "name": "check",
+      "description": "Run code quality checks",
+      "arguments": [
+        {
+          "name": "CHECK_NAME",
+          "required": true,
+          "description": "Check suite or individual check name",
+          "acceptedValues": [
+            "fast", "full",
+            "format", "lint", "type", "arch",
+            "deadcode", "typecov", "astgrep"
+          ]
+        }
+      ],
+      "exitCodes": [
+        { "code": 0, "description": "All checks passed" },
+        { "code": 1, "description": "Invalid or missing check name, or missing config" },
+        { "code": 2, "description": "One or more checks failed" }
+      ],
+      "examples": [
+        "piper-ts check fast",
+        "piper-ts check full",
+        "piper-ts check format"
+      ]
+    },
+    {
+      "name": "test",
+      "description": "Run tests",
+      "arguments": [
+        {
+          "name": "TEST_NAME",
+          "required": true,
+          "description": "Test tier or individual test name",
+          "acceptedValues": [
+            "unit", "full", "e2e"
+          ]
+        }
+      ],
+      "exitCodes": [
+        { "code": 0, "description": "All tests passed" },
+        { "code": 1, "description": "Invalid or missing test name, or missing config" },
+        { "code": 2, "description": "One or more tests failed" }
+      ],
+      "examples": [
+        "piper-ts test unit",
+        "piper-ts test full",
+        "piper-ts test e2e"
+      ]
+    },
+    {
+      "name": "format",
+      "description": "Format code using biome"
+    },
+    {
+      "name": "fix",
+      "description": "Automatically fix lint issues using biome"
+    },
+    {
+      "name": "version",
+      "description": "Display piper-ts version"
+    }
+  ],
+  "exitCodes": [
+    { "code": 0, "description": "Success" },
+    { "code": 1, "description": "Usage error or missing config" },
+    { "code": 2, "description": "Command failed or unknown command" }
+  ],
+  "examples": [
+    "piper-ts init",
+    "piper-ts check fast",
+    "piper-ts test unit",
+    "piper-ts --directory ./my-project check full",
+    "piper-ts format",
+    "piper-ts fix",
+    "piper-ts version"
+  ]
+}
